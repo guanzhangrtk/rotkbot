@@ -38,6 +38,16 @@ fs.exists(raidFile, function(exists) {
   }
 });
 
+function updateFile(json, file) {
+  console.log("Updating file: " + raidFile);
+  fs.writeFile(raidFile, json, 'utf8', function(err) {
+    if (err) {
+      return console.err(err);
+    }
+  });
+  console.log("File " + raidFile + " updated successfully");
+};
+
 bot.on('message', function (user, userID, channelID, message, evt) {
   var msg = "";
   // Bot will listen on '!' commands
@@ -47,6 +57,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
      args = args.splice(1);
      switch(cmd) {
+        // Raid info
+        case 'raid':
+          msg = "The next raid is scheduled for " +nextRaidDate+ " at " +nextRaidTime+ " hours.";
+          bot.sendMessage({
+            to: channelID,
+            message: msg
+          });
+        break;
+ 
         // Register for raid
         case 'register':
            var found = participants.find(function(name) {
@@ -55,26 +74,22 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            if (!found) {
              participants.push(userID);
              var json = JSON.stringify(participants);
+             updateFile(json, raidFile);
              msg = "You are registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
-             console.log("Updating file: " + raidFile);
-             fs.writeFile(raidFile, json, 'utf8', function(err) {
-               if (err) {
-                 return console.err(err);
-               }
-             });
-             console.log("File " + raidFile + " updated successfully");
            } else {
              msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
            };
            bot.sendMessage({
              to: channelID,
-              message: msg
+             message: msg
            });
         break;
 
         // Unregister from raid
         case 'unregister':
            participants = participants.filter(u => u != userID);
+           var json = JSON.stringify(participants);
+           updateFile(json, raidFile);
            bot.sendMessage({
               to: channelID,
               message: "You have been unregistered from the next raid"
@@ -87,7 +102,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            if (!Array.isArray(participants) || !participants.length) {
               msg = "Currently nobody has registered for the next raid."
            } else {
-              msg = "Participants: "+participants.map(u => bot.users[u].username).join(", ")
+              msg = participants.length+ " participants: "+participants.map(u => bot.users[u].username).join(", ")
            };
            bot.sendMessage({
               to: channelID,

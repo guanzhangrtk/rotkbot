@@ -5,6 +5,7 @@ var auth = require('./auth.json');
 var fs = require("fs");
 var botname = "ROTKbot";
 var participants = [];
+var teams = ["main", "sub", "looters"];
 var nextRaidDate = "10/25/2018"
 var nextRaidTime = "+21";
 var raidFile = "data/nextRaid.json";
@@ -54,35 +55,44 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
      var cmd = args[0];
+     var msg = "";
 
      args = args.splice(1);
      switch(cmd) {
         // Raid info
         case 'raid':
           msg = "The next raid is scheduled for " +nextRaidDate+ " at " +nextRaidTime+ " hours.";
-          bot.sendMessage({
-            to: channelID,
-            message: msg
-          });
         break;
  
         // Register for raid
         case 'register':
-           var found = participants.find(function(name) {
-             return name == userID;
-           });
-           if (!found) {
-             participants.push(userID);
-             var json = JSON.stringify(participants);
-             updateFile(json, raidFile);
-             msg = "You are registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
+           var found;
+           
+           if (args[0] === undefined) {
+             msg = "You did not specify a team, valid teams are Main, Sub or Looters";
+             break;
            } else {
-             msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
+             found = teams.find(function(team) {
+               return team == args[0];
+             });
+           }
+
+           // Specified team not found
+           if (!found) {
+             msg = "Invalid team: " +args[0]+ ", valid teams are Main, Sub or Looters";
+           } else {
+             found = participants.find(function(name) {
+               return name == userID;
+             });
+             if (!found) {
+               participants.push(userID);
+               var json = JSON.stringify(participants);
+               updateFile(json, raidFile);
+               msg = "You are registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
+             } else {
+               msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
+             };
            };
-           bot.sendMessage({
-             to: channelID,
-             message: msg
-           });
         break;
 
         // Unregister from raid
@@ -90,10 +100,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            participants = participants.filter(u => u != userID);
            var json = JSON.stringify(participants);
            updateFile(json, raidFile);
-           bot.sendMessage({
-              to: channelID,
-              message: "You have been unregistered from the next raid"
-           });
+           msg = "You have been unregistered from the next raid"
         break;   
 
         // List raid participants
@@ -104,11 +111,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            } else {
               msg = participants.length+ " participants: "+participants.map(u => bot.users[u].username).join(", ")
            };
-           bot.sendMessage({
-              to: channelID,
-              message: msg
-           });
         break;
+
      }
+
+     bot.sendMessage({
+       to: channelID,
+       message: msg
+     });
   }
 });

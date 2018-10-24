@@ -3,11 +3,11 @@
 var Discord = require('discord.io');
 var auth = require('./auth.json');
 var fs = require("fs");
-let botname = "ROTKbot";
-let participants = [];
-let nextRaidDate = "10/25/2018"
-let nextRaidTime = "+21";
-let raidFile = "data/nextRaid.json";
+var botname = "ROTKbot";
+var participants = [];
+var nextRaidDate = "10/25/2018"
+var nextRaidTime = "+21";
+var raidFile = "data/nextRaid.json";
 var msg = "";
 
 // Init ROTKbot
@@ -25,12 +25,14 @@ bot.on('ready', function (evt) {
 console.log("Opening file: " + raidFile);
 fs.exists(raidFile, function(exists) {
   if (exists) { 
-    fs.readFile(raidFile, function (err, data) {
+    console.log("Reading file: " + raidFile);
+    fs.readFile(raidFile, 'utf8', function (err, data) {
       if (err) {
         return console.error(err);
+      } else {
+        participants = JSON.parse(data);
       }
-      console.log("Reading file: " + raidFile);
-     })
+    })
   } else {
       console.log("File: " + raidFile + " does not exist");
   }
@@ -52,7 +54,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            });
            if (!found) {
              participants.push(userID);
+             var json = JSON.stringify(participants);
              msg = "You are registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
+             console.log("Updating file: " + raidFile);
+             fs.writeFile(raidFile, json, 'utf8', function(err) {
+               if (err) {
+                 return console.err(err);
+               }
+             });
+             console.log("File " + raidFile + " updated successfully");
            } else {
              msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
            };

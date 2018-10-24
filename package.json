@@ -1,0 +1,10 @@
+{
+  "name": "rotk-bot",
+  "version": "0.22",
+  "description": "ROTKbot",
+  "main": "rotk.js",
+  "author": "GuanZhang",
+  "dependencies": {
+    "discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6"
+  }
+}

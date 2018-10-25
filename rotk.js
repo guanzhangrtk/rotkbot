@@ -5,7 +5,7 @@ var auth = require('./auth.json');
 var fs = require("fs");
 var botname = "ROTKbot";
 // participants is an array of player objects consisting of
-// name, team and status
+// name, team, status and damage %
 var participants = [];
 var teams = ["main", "sub", "looter"];
 var nextRaidDate = "10/25/2018"
@@ -73,6 +73,16 @@ function printTeam(msg, obj) {
   return msg + "\n";
 }
 
+// Print damage report
+function printDamage(msg, obj) {
+  var total = 0.0;
+  Object.keys(obj).forEach(function (key) {
+    msg = msg + bot.users[obj[key].name].username + ": " +obj[key].damage + "%\n";
+    total = total + parseFloat(obj[key].damage);
+  });
+  return [ msg, total ];
+}
+
 // Send msg to the channel where command are specified
 function sendDaMessage(channelID, msg) {
   bot.sendMessage({
@@ -111,14 +121,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
            // Specified team not found
            if (!found) {
-             msg = "Invalid team " +args[0]+ ", valid teams are Main, Sub or Looters";
+             msg = "Invalid team " +args[0]+ ", valid teams are Main, Sub or Looter";
            } else {
              found = participants.find(function(player) {
                return player.name == userID;
              });
              if (!found) {
                team = args[0].toLowerCase();
-               var player = { "name": userID, "team": team, "status": 0 };
+               var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
                var json = JSON.stringify(participants);
                updateFile(json, raidFile);
@@ -161,7 +171,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                   msg = printTeam(msg, teamObj);
                  }
               });
-              // +participants.map(u => bot.users[u].username).join(", ")
            };
            sendDaMessage(channelID, msg);
         break;
@@ -185,15 +194,50 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               msg = "You have been checked-in";
             }
           } else {
-            msg = "You are currently not reigstered for the next raid, try !register";
+            msg = "You are currently not registered for the next raid, try !register";
           }
           sendDaMessage(channelID, msg);
         break;
 
-        // Damage registration and book keeping
+        // List out available commands
+        case 'commands':
+        break;
+
+        // Print damage report or register damage
         case 'damage':
-          msg = "Your damage has been recorded";
-          sendDaMessage(channelID, msg);
+          if (args[0] === undefined) {
+            damageObj = participants.filter(p => p.damage > 0);
+            msg = "Damage report:\n";
+            arr = printDamage(msg, damageObj);
+            msg = arr[0];
+            total = arr[1];
+            msg = msg + "Total: " +total+ "%\n"
+            if (total >= 100.0) {
+              msg = msg + "Boss is dead, everybody can exit";
+            } else {
+              left = 100.0 - parseFloat(total);
+              msg = msg + "Remaining: " +left.toFixed(2)+ "%\n";
+            }
+            sendDaMessage(channelID, msg);
+            break;
+            }
+            if ((args[0] < 0) || isNaN(args[0]) || args[0] > 100) {
+              msg = "You have entered an invalid value, please enter a positive number less than or equal to 100";
+              sendDaMessage(channelID, msg);
+              break;
+            }
+            found = participants.find(function(player) {
+              return player.name == userID;
+            });
+            if (found) {
+              found.damage = args[0];
+              var json = JSON.stringify(participants);
+              updateFile(json, raidFile);
+              msg = "Your damage has been recorded";
+            } else {
+              msg = "You are currently not registered for the next raid, try !register";
+            }
+            sendDaMessage(channelID, msg);
         break;
 
         default:

@@ -10,7 +10,7 @@ Available commands:
  * !unregister Un-register from the next raid
  * !list List the current participants for the next raid
  * !checkin Check-in during roll call (to un-checkin, invoke command twice)
- * !damage Record Damage (WIP)
+ * !damage Print damage report or register damage
 
 Here are some places you can find him:
  * ROTK Discord: https://discord.gg/wNX96p9

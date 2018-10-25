@@ -48,9 +48,14 @@ function updateFile(json) {
   fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
       return console.err(err);
+    } else {
+      fs.rename(tmpFile, raidFile, function(err) {
+        if (err) {
+          return console.err(err);
+        }
+      });
     }
   });
-  fs.rename(tmpFile, raidFile);
   console.log("File " + raidFile + " updated successfully");
 };
 

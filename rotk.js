@@ -11,7 +11,6 @@ var teams = ["main", "sub", "looter"];
 var date = "October 25 2018 21:00 CDT";
 var raidDate = new Date(date);
 var raidFile = "data/nextRaid.json";
-var status;
 let msg = "";
 
 // Init ROTKbot

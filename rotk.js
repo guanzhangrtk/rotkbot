@@ -68,7 +68,7 @@ function updateFile(json) {
 // Print members of each team
 function printTeam(msg, obj) {
   team = capitalize(Object.entries(obj)[0][1].team);
-  msg = msg + team + " team: ";
+  msg = msg + team + " team [" + obj.length + "]: ";
   Object.keys(obj).forEach(function (key) {
      if (obj[key].status) {
        username = "**" + bot.users[obj[key].name].username + "**";

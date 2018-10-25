@@ -12,6 +12,12 @@ var date = "October 25 2018 21:00 CDT";
 var raidDate = new Date(date);
 var raidFile = "data/nextRaid.json";
 let msg = "";
+var json;
+
+// Capitalize first character of the word
+function capitalize(word) {
+  return word.charAt(0).toUpperCase() + word.substr(1);
+}
 
 // Init ROTKbot
 console.log("Initializing " + botname);
@@ -61,8 +67,7 @@ function updateFile(json) {
 
 // Print members of each team
 function printTeam(msg, obj) {
-  team = Object.entries(obj)[0][1].team;
-  team = team.charAt(0).toUpperCase() + team.substr(1);
+  team = capitalize(Object.entries(obj)[0][1].team);
   msg = msg + team + " team: ";
   Object.keys(obj).forEach(function (key) {
      if (obj[key].status) {
@@ -98,6 +103,9 @@ function sendDaMessage(channelID, msg) {
 }
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+  let sender = bot.users[userID].username;
+  let validTeams = teams.map(e => capitalize(e)).join(", ");
+
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
@@ -126,7 +134,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            var found;
            
            if (args[0] === undefined) {
-             msg = "You did not specify a team, valid teams are Main, Sub or Looter";
+             msg = sender + ", you did not specify a team, valid teams are " + validTeams;
              sendDaMessage(channelID, msg);
              break;
            } else {
@@ -137,7 +145,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
            // Specified team not found
            if (!found) {
-             msg = "Invalid team " +args[0]+ ", valid teams are Main, Sub or Looter";
+             msg = sender + ", the specified team \"" +args[0]+ "\" is invalid, valid teams are " + validTeams;
            } else {
              found = participants.find(function(player) {
                return player.name == userID;
@@ -146,12 +154,12 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                team = args[0].toLowerCase();
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
-               var json = JSON.stringify(participants);
+               json = JSON.stringify(participants);
                updateFile(json);
-               team = team.charAt(0).toUpperCase() + team.substr(1);
-               msg = "You are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+               team = capitalize(team);
+               msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
-               msg = "You are already registered for the next raid scheduled for " +date+ " (server time)";
+               msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
              };
            };
            sendDaMessage(channelID, msg);
@@ -164,11 +172,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            });
            if (found) {
              participants = participants.filter(u => u.name != userID);
-             var json = JSON.stringify(participants);
+             json = JSON.stringify(participants);
              updateFile(json);
-             msg = "You are unregistered from the next raid";
+             msg = sender + ", you are unregistered from the next raid";
            } else {
-             msg = "You are currently not registered for the next raid, try !register";
+             msg = sender + ", you are currently not registered for the next raid, try !register";
            }
            sendDaMessage(channelID, msg);
         break;
@@ -199,17 +207,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (found) {
             if (found.status) {
               found.status = 0;
-              var json = JSON.stringify(participants);
+              json = JSON.stringify(participants);
               updateFile(json);
-              msg = "You are no longer checked in";
+              msg = sender + ", you are no longer checked in";
             } else {
               found.status = 1;
-              var json = JSON.stringify(participants);
+              json = JSON.stringify(participants);
               updateFile(json);
-              msg = "You are checked in";
+              msg = sender + ", you are checked in";
             }
           } else {
-            msg = "You are currently not registered for the next raid, try !register";
+            msg = sender + ", you are currently not registered for the next raid, try !register";
           }
           sendDaMessage(channelID, msg);
         break;
@@ -232,22 +240,26 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           let total = 0;
           if (args[0] === undefined) {
             damageObj = participants.filter(p => p.damage > 0);
-            msg = "Damage report:\n";
-            arr = printDamage(msg, damageObj);
-            msg = arr[0];
-            total = arr[1];
-            msg = msg + "Total: " +total+ "%\n"
-            if (total >= 100.0) {
-              msg = msg + "Boss is dead, everybody can exit";
+            if (damageObj.length == 0) {
+              msg = "Currently there are no damages recorded";
             } else {
-              left = 100.0 - parseFloat(total);
-              msg = msg + "Remaining: " +left.toFixed(2)+ "%\n";
+              msg = "Damage report:\n";
+              arr = printDamage(msg, damageObj);
+              msg = arr[0];
+              total = arr[1];
+              msg = msg + "Total: " +total+ "%\n"
+              if (total >= 100.0) {
+                msg = msg + "Boss is dead, everybody can exit";
+              } else {
+                left = 100.0 - parseFloat(total);
+                msg = msg + "Remaining: " +left.toFixed(2)+ "%\n";
+              }
             }
             sendDaMessage(channelID, msg);
             break;
             }
             if ((args[0] < 0) || isNaN(args[0]) || args[0] > 100) {
-              msg = "You have entered an invalid value, please enter a positive number less than or equal to 100";
+              msg = sender + ", you have entered an invalid value, please enter a positive number less than or equal to 100";
               sendDaMessage(channelID, msg);
               break;
             }
@@ -256,18 +268,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             });
             if (found) {
               found.damage = args[0];
-              var json = JSON.stringify(participants);
+              json = JSON.stringify(participants);
               updateFile(json);
-              msg = "Your damage has been recorded";
+              msg = sender + ", your damage has been recorded";
             } else {
-              msg = "You are currently not registered for the raid, try !register first";
+              msg = sender + ", you are currently not registered for the raid, try !register first";
             }
             sendDaMessage(channelID, msg);
         break;
-
-        default:
-          msg = "That does not compute"
-          sendDaMessage(channelID, msg);
      }
   }
 });

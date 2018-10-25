@@ -56,7 +56,7 @@ function updateFile(json) {
       });
     }
   });
-  console.log("File " + raidFile + " updated successfully");
+  console.log("done");
 };
 
 // Print members of each team
@@ -166,7 +166,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              participants = participants.filter(u => u.name != userID);
              var json = JSON.stringify(participants);
              updateFile(json);
-             msg = "You have been unregistered from the next raid";
+             msg = "You are unregistered from the next raid";
            } else {
              msg = "You are currently not registered for the next raid, try !register";
            }
@@ -198,16 +198,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           });
           if (found) {
             if (found.status) {
-              //msg = "You have already checked-in, nothing to do here";
               found.status = 0;
               var json = JSON.stringify(participants);
               updateFile(json);
-              msg = "You are no longer checked-in";
+              msg = "You are no longer checked in";
             } else {
               found.status = 1;
               var json = JSON.stringify(participants);
               updateFile(json);
-              msg = "You have been checked-in";
+              msg = "You are checked in";
             }
           } else {
             msg = "You are currently not registered for the next raid, try !register";

@@ -84,11 +84,15 @@ function printTeam(msg, obj) {
   return msg + "\n";
 }
 
-// Print damage report
+// Print damage report and return an array with the report and total damage
 function printDamage(msg, obj) {
   var total = 0.0;
+  // Sort by damage in descending order
+  obj.sort(function(a, b) {
+    return parseFloat(b.damage) - parseFloat(a.damage);
+  });
   Object.keys(obj).forEach(function (key) {
-    msg = msg + bot.users[obj[key].name].username + ": " +obj[key].damage + "%\n";
+    msg = msg + bot.users[obj[key].name].username + ": " +parseFloat(obj[key].damage).toFixed(2)+ "%\n";
     total = total + parseFloat(obj[key].damage);
   });
   return [ msg, total ];

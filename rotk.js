@@ -44,12 +44,14 @@ fs.exists(raidFile, function(exists) {
 
 // Update json file on disk
 function updateFile(json) {
+  let tmpFile = raidFile+ ".tmp";
   console.log("Updating file: " + raidFile);
-  fs.writeFile(raidFile, json, 'utf8', function(err) {
+  fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
       return console.err(err);
     }
   });
+  fs.rename(tmpFile, raidFile);
   console.log("File " + raidFile + " updated successfully");
 };
 

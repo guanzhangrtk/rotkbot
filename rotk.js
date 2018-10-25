@@ -4,12 +4,15 @@ var Discord = require('discord.io');
 var auth = require('./auth.json');
 var fs = require("fs");
 var botname = "ROTKbot";
+// participants is an array of player objects consisting of
+// name, team and status
 var participants = [];
-var teams = ["main", "sub", "looters"];
+var teams = ["main", "sub", "looter"];
 var nextRaidDate = "10/25/2018"
 var nextRaidTime = "+21";
 var raidFile = "data/nextRaid.json";
-var msg = "";
+var status;
+let msg = "";
 
 // Init ROTKbot
 console.log("Initializing " + botname);
@@ -39,6 +42,7 @@ fs.exists(raidFile, function(exists) {
   }
 });
 
+// Update json file on disk
 function updateFile(json, file) {
   console.log("Updating file: " + raidFile);
   fs.writeFile(raidFile, json, 'utf8', function(err) {
@@ -49,19 +53,46 @@ function updateFile(json, file) {
   console.log("File " + raidFile + " updated successfully");
 };
 
+// Print members of each team
+function printTeam(msg, obj) {
+  team = Object.entries(obj)[0][1].team;
+  team = team.charAt(0).toUpperCase() + team.substr(1);
+  msg = msg + team + " team: ";
+  Object.keys(obj).forEach(function (key) {
+     if (obj[key].status) {
+       username = "**" + bot.users[obj[key].name].username + "**";
+     } else {
+       username = bot.users[obj[key].name].username;
+     }
+     msg = msg + username;
+     // Only add comm unless it's the last element
+     if (!(obj.length - 1 == key)) {
+       msg = msg + ", ";
+     }
+  });
+  return msg + "\n";
+}
+
+// Send msg to the channel where command are specified
+function sendDaMessage(channelID, msg) {
+  bot.sendMessage({
+    to: channelID,
+    message: msg
+  })
+}
+
 bot.on('message', function (user, userID, channelID, message, evt) {
-  var msg = "";
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
      var cmd = args[0];
-     var msg = "";
 
      args = args.splice(1);
      switch(cmd) {
         // Raid info
         case 'raid':
           msg = "The next raid is scheduled for " +nextRaidDate+ " at " +nextRaidTime+ " hours.";
+          sendDaMessage(channelID, msg);
         break;
  
         // Register for raid
@@ -69,55 +100,105 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            var found;
            
            if (args[0] === undefined) {
-             msg = "You did not specify a team, valid teams are Main, Sub or Looters";
+             msg = "You did not specify a team, valid teams are Main, Sub or Looter";
+             sendDaMessage(channelID, msg);
              break;
            } else {
              found = teams.find(function(team) {
-               return team == args[0];
+               return team == args[0].toLowerCase();
              });
            }
 
            // Specified team not found
            if (!found) {
-             msg = "Invalid team: " +args[0]+ ", valid teams are Main, Sub or Looters";
+             msg = "Invalid team " +args[0]+ ", valid teams are Main, Sub or Looters";
            } else {
-             found = participants.find(function(name) {
-               return name == userID;
+             found = participants.find(function(player) {
+               return player.name == userID;
              });
              if (!found) {
-               participants.push(userID);
+               team = args[0].toLowerCase();
+               var player = { "name": userID, "team": team, "status": 0 };
+               participants.push(player);
                var json = JSON.stringify(participants);
                updateFile(json, raidFile);
-               msg = "You are registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
+               team = team.charAt(0).toUpperCase() + team.substr(1);
+               msg = "You are registered in the " +team+ " team for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
              } else {
                msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
              };
            };
+           sendDaMessage(channelID, msg);
         break;
 
         // Unregister from raid
         case 'unregister':
-           participants = participants.filter(u => u != userID);
-           var json = JSON.stringify(participants);
-           updateFile(json, raidFile);
-           msg = "You have been unregistered from the next raid"
-        break;   
+           found = participants.find(function(player) {
+             return player.name == userID;
+           });
+           if (found) {
+             participants = participants.filter(u => u.name != userID);
+             var json = JSON.stringify(participants);
+             updateFile(json, raidFile);
+             msg = "You have been unregistered from the next raid";
+           } else {
+             msg = "You are currently not registered for the next raid, try !register";
+           }
+           sendDaMessage(channelID, msg);
+        break;
 
         // List raid participants
         case 'list':
+           count = participants.length;
            // Check if anybody has registered
-           if (!Array.isArray(participants) || !participants.length) {
+           if (count == 0) {
               msg = "Currently nobody has registered for the next raid."
            } else {
-              msg = participants.length+ " participants: "+participants.map(u => bot.users[u].username).join(", ")
+              msg = "There are currently " +count+ " participants: \n";
+              teams.forEach(function(team) {
+                 teamObj = participants.filter(p => p.team === team);
+                 if (Object.keys(teamObj).length) {
+                  msg = printTeam(msg, teamObj);
+                 }
+              });
+              // +participants.map(u => bot.users[u].username).join(", ")
            };
+           sendDaMessage(channelID, msg);
         break;
 
-     }
+        // Check-in during roll call
+        case 'checkin':
+          found = participants.find(function(player) {
+            return player.name == userID;
+          });
+          if (found) {
+            if (found.status) {
+              //msg = "You have already checked-in, nothing to do here";
+              found.status = 0;
+              var json = JSON.stringify(participants);
+              updateFile(json, raidFile);
+              msg = "You are no longer checked-in";
+            } else {
+              found.status = 1;
+              var json = JSON.stringify(participants);
+              updateFile(json, raidFile);
+              msg = "You have been checked-in";
+            }
+          } else {
+            msg = "You are currently not reigstered for the next raid, try !register";
+          }
+          sendDaMessage(channelID, msg);
+        break;
 
-     bot.sendMessage({
-       to: channelID,
-       message: msg
-     });
+        // Damage registration and book keeping
+        case 'damage':
+          msg = "Your damage has been recorded";
+          sendDaMessage(channelID, msg);
+        break;
+
+        default:
+          msg = "That does not compute"
+          sendDaMessage(channelID, msg);
+     }
   }
 });

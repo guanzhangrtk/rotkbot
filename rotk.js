@@ -8,8 +8,8 @@ var botname = "ROTKbot";
 // name, team, status and damage %
 var participants = [];
 var teams = ["main", "sub", "looter"];
-var nextRaidDate = "10/25/2018"
-var nextRaidTime = "+21";
+var date = "October 25 2018 21:00 CDT";
+var raidDate = new Date(date);
 var raidFile = "data/nextRaid.json";
 var status;
 let msg = "";
@@ -43,7 +43,7 @@ fs.exists(raidFile, function(exists) {
 });
 
 // Update json file on disk
-function updateFile(json, file) {
+function updateFile(json) {
   console.log("Updating file: " + raidFile);
   fs.writeFile(raidFile, json, 'utf8', function(err) {
     if (err) {
@@ -101,7 +101,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
      switch(cmd) {
         // Raid info
         case 'raid':
-          msg = "The next raid is scheduled for " +nextRaidDate+ " at " +nextRaidTime+ " hours.";
+          let now = new Date();
+          let diff = (raidDate - now) / 3600000;
+          let hours = Math.floor(diff);
+          let minutes = Math.floor(diff %1 * 60);
+          let timeLeft = "";
+          if (hours) {
+            timeLeft = hours + " hours and " + minutes;
+          } else {
+            timeLeft = minutes;
+          }
+          msg = "The next raid is scheduled for " +date+ " (server time) which is " + timeLeft+ " minutes from now";
           sendDaMessage(channelID, msg);
         break;
  
@@ -131,11 +141,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
                var json = JSON.stringify(participants);
-               updateFile(json, raidFile);
+               updateFile(json);
                team = team.charAt(0).toUpperCase() + team.substr(1);
-               msg = "You are registered in the " +team+ " team for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours";
+               msg = "You are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
-               msg = "You are already registered for the next raid scheduled for "+nextRaidDate+ " at "+nextRaidTime+" hours"     
+               msg = "You are already registered for the next raid scheduled for " +date+ " (server time)";
              };
            };
            sendDaMessage(channelID, msg);
@@ -149,7 +159,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            if (found) {
              participants = participants.filter(u => u.name != userID);
              var json = JSON.stringify(participants);
-             updateFile(json, raidFile);
+             updateFile(json);
              msg = "You have been unregistered from the next raid";
            } else {
              msg = "You are currently not registered for the next raid, try !register";
@@ -185,12 +195,12 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               //msg = "You have already checked-in, nothing to do here";
               found.status = 0;
               var json = JSON.stringify(participants);
-              updateFile(json, raidFile);
+              updateFile(json);
               msg = "You are no longer checked-in";
             } else {
               found.status = 1;
               var json = JSON.stringify(participants);
-              updateFile(json, raidFile);
+              updateFile(json);
               msg = "You have been checked-in";
             }
           } else {
@@ -201,10 +211,20 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List out available commands
         case 'commands':
+          msg = "Available commands:\n";
+          msg = msg + " !raid List the next scheduled raid\n"
+          msg = msg + " !register Register for the next raid (options are Main, Sub or Looter)\n"
+          msg = msg + " !unregister Un-register from the next raid\n"
+          msg = msg + " !list List the current participants for the next raid\n"
+          msg = msg + " !checkin Check-in during roll call (to un-checkin, just invoke the command again)\n"
+          msg = msg + " !damage Print damage report or register damage"
+          sendDaMessage(channelID, msg);
         break;
 
         // Print damage report or register damage
         case 'damage':
+          let arr = [];
+          let total = 0;
           if (args[0] === undefined) {
             damageObj = participants.filter(p => p.damage > 0);
             msg = "Damage report:\n";
@@ -232,10 +252,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             if (found) {
               found.damage = args[0];
               var json = JSON.stringify(participants);
-              updateFile(json, raidFile);
+              updateFile(json);
               msg = "Your damage has been recorded";
             } else {
-              msg = "You are currently not registered for the next raid, try !register";
+              msg = "You are currently not registered for the raid, try !register first";
             }
             sendDaMessage(channelID, msg);
         break;

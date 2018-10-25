@@ -109,6 +109,7 @@ function sendDaMessage(channelID, msg) {
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;
   let validTeams = teams.map(e => capitalize(e)).join(", ");
+  let notRegistered = sender + ", you are currently not registered for the raid, try !register [team]";
 
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
@@ -180,7 +181,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              updateFile(json);
              msg = sender + ", you are unregistered from the next raid";
            } else {
-             msg = sender + ", you are currently not registered for the next raid, try !register";
+             msg = notRegistered;
            }
            sendDaMessage(channelID, msg);
         break;
@@ -221,7 +222,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               msg = sender + ", you are checked in";
             }
           } else {
-            msg = sender + ", you are currently not registered for the next raid, try !register";
+            msg = notRegistered;
           }
           sendDaMessage(channelID, msg);
         break;
@@ -276,7 +277,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               updateFile(json);
               msg = sender + ", your damage has been recorded";
             } else {
-              msg = sender + ", you are currently not registered for the raid, try !register first";
+              msg = notRegistered;
             }
             sendDaMessage(channelID, msg);
         break;

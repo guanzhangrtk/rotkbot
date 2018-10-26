@@ -72,14 +72,23 @@ function updateFile(data) {
 };
 
 // Print members of each team
-function printTeam(msg, obj) {
+function printTeam(msg, obj, evt) {
   team = capitalize(Object.entries(obj)[0][1].team);
   msg = msg + team + " team [" + obj.length + "]: ";
+  let username = "";
+  let serverID = evt.d.guild_id;
+  let userObj;
+
   Object.keys(obj).forEach(function (key) {
+      userObj = bot.servers[serverID].members[obj[key].name];
+      // Prints server-specific nickname, if set
+      if (userObj && userObj.nick != null) {
+        username = bot.servers[serverID].members[obj[key].name].nick;
+      } else {
+        username = bot.users[obj[key].name].username;
+      }
      if (obj[key].status) {
-       username = "**" + bot.users[obj[key].name].username + "**";
-     } else {
-       username = bot.users[obj[key].name].username;
+       username = "**" + username + "**";
      }
      msg = msg + username;
      // Only add comm unless it's the last element
@@ -215,7 +224,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               teams.forEach(function(team) {
                  teamObj = participants.filter(p => p.team === team);
                  if (Object.keys(teamObj).length) {
-                  msg = printTeam(msg, teamObj);
+                  msg = printTeam(msg, teamObj, evt);
                  }
               });
            };

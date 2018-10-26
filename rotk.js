@@ -229,22 +229,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           sendDaMessage(channelID, msg);
         break;
 
-        // Uncheck-in all participants (useful for running back-to-back raids)
-        case 'uncheckin':
-          Object.keys(participants).forEach(function(key) {
-            participants[key].status = 0;
-          });
-          updateFile(participants);  
-        break;
-
-        // Clear damage report and reset for next run
-        case 'cleardamage':
-          Object.keys(participants).forEach(function(key) {
-            participants[key].damage = 0;
-          });
-          updateFile(participants);  
-        break;
-
         // List out available commands
         case 'commands':
           msg = "Available commands:\n";
@@ -300,6 +284,25 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             msg = notRegistered;
           }
           sendDaMessage(channelID, msg);
+        break;
+
+        // The follow commands are meant to be used by the superuser
+        // TODO restrict access
+
+        // Uncheck-in all participants (useful for running back-to-back raids)
+        case 'uncheckin':
+          Object.keys(participants).forEach(function(key) {
+            participants[key].status = 0;
+          });
+          updateFile(participants);
+        break;
+
+        // Clear damage report and reset for next run
+        case 'cleardamage':
+          Object.keys(participants).forEach(function(key) {
+            participants[key].damage = 0;
+          });
+          updateFile(participants);
         break;
      }
   }

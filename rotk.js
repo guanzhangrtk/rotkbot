@@ -109,7 +109,8 @@ function sendDaMessage(channelID, msg) {
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;
   let validTeams = teams.map(e => capitalize(e)).join(", ");
-  let notRegistered = sender + ", you are currently not registered for the raid, try !register [team]";
+  let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
+  let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
 
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
@@ -139,7 +140,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            var found;
            
            if (args[0] === undefined) {
-             msg = sender + ", you did not specify a team, valid teams are " + validTeams;
+             msg = invalidTeam;
              sendDaMessage(channelID, msg);
              break;
            } else {
@@ -150,7 +151,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
            // Specified team not found
            if (!found) {
-             msg = sender + ", the specified team \"" +args[0]+ "\" is invalid, valid teams are " + validTeams;
+             msg = invalidTeam;
            } else {
              found = participants.find(function(player) {
                return player.name == userID;
@@ -232,6 +233,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           json = JSON.stringify(participants);
           Object.keys(participants).forEach(function(key) {
             participants[key].status = 0;
+          });
+          updateFile(json);  
+        break;
+
+        // Clear damage report and reset for next run
+        case 'cleardamage':
+          json = JSON.stringify(participants);
+          Object.keys(participants).forEach(function(key) {
+            participants[key].damage = 0;
           });
           updateFile(json);  
         break;

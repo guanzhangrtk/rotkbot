@@ -17,6 +17,7 @@ let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortois
 let levels = [ "minor", "intermediate", "advanced", "master" ];
 let hp = 792900;
 let found;
+let time = "";
 
 // Capitalize first character of the word
 function capitalize(word) {
@@ -112,6 +113,20 @@ function sendDaMessage(channelID, msg) {
   })
 }
 
+// Calculate how much time until the next raid
+function timeLeft() {
+  let now = new Date();
+  let diff = (raidDate - now) / 3600000;
+  let hours = Math.floor(diff);
+  let minutes = Math.floor(diff %1 * 60);
+  if (hours) {
+    time = hours + " hours and " + minutes;
+  } else {
+    time = minutes;
+  }
+  return time + " minutes";
+}
+
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;
   let validTeams = teams.map(e => capitalize(e)).join(", ");
@@ -127,17 +142,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
      switch(cmd) {
         // Raid info
         case 'raid':
-          let now = new Date();
-          let diff = (raidDate - now) / 3600000;
-          let hours = Math.floor(diff);
-          let minutes = Math.floor(diff %1 * 60);
-          let timeLeft = "";
-          if (hours) {
-            timeLeft = hours + " hours and " + minutes;
-          } else {
-            timeLeft = minutes;
-          }
-          msg = "The next raid is scheduled for " +date+ " (server time) which is " + timeLeft+ " minutes from now";
+          time = timeLeft();
+          msg = "The next raid is scheduled for " +date+ " (server time) which is " + time+ " from now";
           sendDaMessage(channelID, msg);
         break;
  
@@ -299,6 +305,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Uncheck-in all participants (useful for running back-to-back raids)
         case 'uncheckin':
+          if (bot.users[userID].username != "GuanZhang") {
+            console.log("Unauthorized command by " + bot.users[userID].username);
+            break;
+          }
           Object.keys(participants).forEach(function(key) {
             participants[key].status = 0;
           });
@@ -307,10 +317,31 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Clear damage report and reset for next run
         case 'cleardamage':
+          if (bot.users[userID].username != "GuanZhang") {
+            console.log("Unauthorized command by " + bot.users[userID].username);
+            break;
+          }
           Object.keys(participants).forEach(function(key) {
             participants[key].damage = 0;
           });
           updateFile(participants);
+        break;
+
+        // Tag folks who registered but haven't checked in yet
+        case 'nag':
+          msg = "";
+          if (bot.users[userID].username != "GuanZhang") {
+            console.log("Unauthorized command by " + bot.users[userID].username);
+            break;
+          }
+          time = timeLeft();
+          Object.keys(participants).forEach(function(key) {
+            if (participants[key].status === 0) {
+              msg = msg + "<@!" + participants[key].name + "> ";
+            }
+          });
+          msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+          sendDaMessage(channelID, msg);
         break;
      }
   }

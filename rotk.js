@@ -204,7 +204,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            sendDaMessage(channelID, msg);
         break;
 
-        // Check-in during roll call
+        // Check in during roll call
         case 'checkin':
           found = participants.find(function(player) {
             return player.name == userID;
@@ -225,6 +225,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             msg = notRegistered;
           }
           sendDaMessage(channelID, msg);
+        break;
+
+        // Uncheck-in all participants (useful for running back-to-back raids)
+        case 'uncheckin':
+          json = JSON.stringify(participants);
+          Object.keys(participants).forEach(function(key) {
+            participants[key].status = 0;
+          });
+          updateFile(json);  
         break;
 
         // List out available commands

@@ -8,11 +8,14 @@ var botname = "ROTKbot";
 // name, team, status and damage %
 var participants = [];
 var teams = ["main", "sub", "looter"];
-var date = "October 25 2018 21:00 CDT";
+var date = "October 26 2018 21:00 CDT";
 var raidDate = new Date(date);
 var raidFile = "data/nextRaid.json";
 let msg = "";
 var json;
+let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortoise" ];
+let levels = [ "minor", "intermediate", "advanced", "master" ];
+let hp = 792900;
 
 // Capitalize first character of the word
 function capitalize(word) {
@@ -48,8 +51,9 @@ fs.exists(raidFile, function(exists) {
 });
 
 // Update json file on disk
-function updateFile(json) {
+function updateFile(data) {
   let tmpFile = raidFile+ ".tmp";
+  let json = JSON.stringify(data, null, 4)
   console.log("Updating file: " + raidFile);
   fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
@@ -89,13 +93,14 @@ function printDamage(msg, obj) {
   var total = 0.0;
   // Sort by damage in descending order
   obj.sort(function(a, b) {
-    return parseFloat(b.damage) - parseFloat(a.damage);
+    return b.damage - a.damage;
   });
   Object.keys(obj).forEach(function (key) {
-    msg = msg + bot.users[obj[key].name].username + ": " +parseFloat(obj[key].damage).toFixed(2)+ "%\n";
-    total = total + parseFloat(obj[key].damage);
+    pc = obj[key].damage/hp*100;
+    msg = msg + bot.users[obj[key].name].username + ": " +obj[key].damage+ " (" + pc.toFixed(2)+ "%)\n";
+    total = total + parseFloat(pc);
   });
-  return [ msg, total ];
+  return [ msg, total.toFixed(2) ];
 }
 
 // Send msg to the channel where command are specified
@@ -160,8 +165,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                team = args[0].toLowerCase();
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
-               json = JSON.stringify(participants);
-               updateFile(json);
+               updateFile(participants);
                team = capitalize(team);
                msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
@@ -178,8 +182,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            });
            if (found) {
              participants = participants.filter(u => u.name != userID);
-             json = JSON.stringify(participants);
-             updateFile(json);
+             updateFile(participants);
              msg = sender + ", you are unregistered from the next raid";
            } else {
              msg = notRegistered;
@@ -213,13 +216,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (found) {
             if (found.status) {
               found.status = 0;
-              json = JSON.stringify(participants);
-              updateFile(json);
+              updateFile(participants);
               msg = sender + ", you are no longer checked in";
             } else {
               found.status = 1;
-              json = JSON.stringify(participants);
-              updateFile(json);
+              updateFile(participants);
               msg = sender + ", you are checked in";
             }
           } else {
@@ -230,20 +231,18 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Uncheck-in all participants (useful for running back-to-back raids)
         case 'uncheckin':
-          json = JSON.stringify(participants);
           Object.keys(participants).forEach(function(key) {
             participants[key].status = 0;
           });
-          updateFile(json);  
+          updateFile(participants);  
         break;
 
         // Clear damage report and reset for next run
         case 'cleardamage':
-          json = JSON.stringify(participants);
           Object.keys(participants).forEach(function(key) {
             participants[key].damage = 0;
           });
-          updateFile(json);  
+          updateFile(participants);  
         break;
 
         // List out available commands
@@ -262,7 +261,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         case 'damage':
           let arr = [];
           let total = 0;
-          if (args[0] === undefined) {
+          let input = args[0];
+
+          if (input === undefined) {
             damageObj = participants.filter(p => p.damage > 0);
             if (damageObj.length == 0) {
               msg = "Currently there are no damages recorded";
@@ -282,8 +283,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             sendDaMessage(channelID, msg);
             break;
           }
-          if ((args[0] < 0) || isNaN(args[0]) || args[0] > 100) {
-            msg = sender + ", you have entered an invalid value, please enter a positive number less than or equal to 100";
+
+          if ((isNaN(input) || parseInt(input) < 0 || parseInt(input) >= hp)) {
+            msg = sender + ", you have entered an invalid number, please enter a positive number less than or equal to " + hp + " (HP of boss)";
             sendDaMessage(channelID, msg);
             break;
           }
@@ -291,9 +293,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             return player.name == userID;
           });
           if (found) {
-            found.damage = args[0];
-            json = JSON.stringify(participants);
-            updateFile(json);
+            found.damage = parseInt(input);
+            updateFile(participants);
             msg = sender + ", your damage has been recorded";
           } else {
             msg = notRegistered;

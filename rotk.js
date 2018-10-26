@@ -281,24 +281,24 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             }
             sendDaMessage(channelID, msg);
             break;
-            }
-            if ((args[0] < 0) || isNaN(args[0]) || args[0] > 100) {
-              msg = sender + ", you have entered an invalid value, please enter a positive number less than or equal to 100";
-              sendDaMessage(channelID, msg);
-              break;
-            }
-            found = participants.find(function(player) {
-              return player.name == userID;
-            });
-            if (found) {
-              found.damage = args[0];
-              json = JSON.stringify(participants);
-              updateFile(json);
-              msg = sender + ", your damage has been recorded";
-            } else {
-              msg = notRegistered;
-            }
+          }
+          if ((args[0] < 0) || isNaN(args[0]) || args[0] > 100) {
+            msg = sender + ", you have entered an invalid value, please enter a positive number less than or equal to 100";
             sendDaMessage(channelID, msg);
+            break;
+          }
+          found = participants.find(function(player) {
+            return player.name == userID;
+          });
+          if (found) {
+            found.damage = args[0];
+            json = JSON.stringify(participants);
+            updateFile(json);
+            msg = sender + ", your damage has been recorded";
+          } else {
+            msg = notRegistered;
+          }
+          sendDaMessage(channelID, msg);
         break;
      }
   }

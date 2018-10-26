@@ -35,10 +35,10 @@ bot.on('ready', function (evt) {
 });
 
 // Load nextRaid.json file
-console.log("Opening file: " + raidFile);
+console.log("Opening file " + raidFile);
 fs.exists(raidFile, function(exists) {
   if (exists) { 
-    console.log("Reading file: " + raidFile);
+    console.log("Reading file " + raidFile);
     fs.readFile(raidFile, 'utf8', function (err, data) {
       if (err) {
         return console.error(err);
@@ -55,7 +55,7 @@ fs.exists(raidFile, function(exists) {
 function updateFile(data) {
   let tmpFile = raidFile+ ".tmp";
   let json = JSON.stringify(data, null, 4)
-  console.log("Updating file: " + raidFile);
+  process.stdout.write("Updating file " + raidFile + "... ");
   fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
       return console.err(err);

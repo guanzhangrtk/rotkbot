@@ -5,7 +5,7 @@ var auth = require('./auth.json');
 var fs = require("fs");
 var botname = "ROTKbot";
 // participants is an array of player objects consisting of
-// name, team, status and damage %
+// name, team, status and damage
 var participants = [];
 var teams = ["main", "sub", "looter"];
 var date = "October 26 2018 21:00 CDT";

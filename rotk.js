@@ -16,6 +16,7 @@ var json;
 let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortoise" ];
 let levels = [ "minor", "intermediate", "advanced", "master" ];
 let hp = 792900;
+let found;
 
 // Capitalize first character of the word
 function capitalize(word) {
@@ -142,8 +143,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
  
         // Register for raid
         case 'register':
-           var found;
-           
+           // User didn't specify team 
            if (args[0] === undefined) {
              msg = invalidTeam;
              sendDaMessage(channelID, msg);
@@ -154,6 +154,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              });
            }
 
+           team = args[0].toLowerCase();
+
            // Specified team not found
            if (!found) {
              msg = invalidTeam;
@@ -162,14 +164,20 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                return player.name == userID;
              });
              if (!found) {
-               team = args[0].toLowerCase();
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
                updateFile(participants);
                team = capitalize(team);
                msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
-               msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
+               if (found.team != team) {
+                 found.team = team;
+                 updateFile(participants);
+                 team = capitalize(team);
+                 msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+               } else {
+                 msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
+               }
              };
            };
            sendDaMessage(channelID, msg);

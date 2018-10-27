@@ -24,13 +24,6 @@ function capitalize(word) {
   return word.charAt(0).toUpperCase() + word.substr(1);
 }
 
-// Init ROTKbot
-console.log("Initializing " + botname);
-var bot = new Discord.Client({
-  token: auth.token,
-  autorun: true
-});
-
 // Update json file on disk
 function updateFile(data) {
   let tmpFile = raidFile+ ".tmp";

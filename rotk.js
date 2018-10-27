@@ -359,3 +359,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
      }
   }
 });
+
+// Re-connect on disconnection with 6 seconds delay
+bot.on("disconnect", () => setTimeout(() => bot.connect(), 6000));

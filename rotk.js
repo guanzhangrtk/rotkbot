@@ -152,7 +152,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Raid info
         case 'raid':
           time = timeLeft();
-          msg = "The next raid is scheduled for " +date+ " (server time) which is " + time+ " from now";
+          if (time.charAt(0) == "-") {
+            msg = "There is currently no scheduled raid, please check back again later";
+          } else {
+            msg = "The next raid is scheduled for " +date+ " (server time) which is " + time+ " from now";
+          }
           sendDaMessage(channelID, msg);
         break;
  

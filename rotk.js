@@ -31,27 +31,6 @@ var bot = new Discord.Client({
   autorun: true
 });
 
-bot.on('ready', function (evt) {
-  console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
-});
-
-// Load nextRaid.json file
-console.log("Opening file " + raidFile);
-fs.exists(raidFile, function(exists) {
-  if (exists) { 
-    console.log("Reading file " + raidFile);
-    fs.readFile(raidFile, 'utf8', function (err, data) {
-      if (err) {
-        return console.error(err);
-      } else {
-        participants = JSON.parse(data);
-      }
-    })
-  } else {
-      console.log("File: " + raidFile + " does not exist");
-  }
-});
-
 // Update json file on disk
 function updateFile(data) {
   let tmpFile = raidFile+ ".tmp";
@@ -135,6 +114,34 @@ function timeLeft() {
   }
   return time + " minutes";
 }
+
+// Init ROTKbot
+console.log("Initializing " + botname);
+var bot = new Discord.Client({
+  token: auth.token,
+  autorun: true
+});
+
+bot.on('ready', function (evt) {
+  console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
+});
+
+// Load nextRaid.json file
+console.log("Opening file " + raidFile);
+fs.exists(raidFile, function(exists) {
+  if (exists) {
+    console.log("Reading file " + raidFile);
+    fs.readFile(raidFile, 'utf8', function (err, data) {
+      if (err) {
+        return console.error(err);
+      } else {
+        participants = JSON.parse(data);
+      }
+    })
+  } else {
+      console.log("File: " + raidFile + " does not exist");
+  }
+});
 
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;

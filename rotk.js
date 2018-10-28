@@ -10,7 +10,7 @@ var participants = [];
 var teams = ["main", "sub", "looter"];
 var date = "October 26 2018 21:00 CDT";
 var raidDate = new Date(date);
-var raidFile = "data/nextRaid.json";
+var pFile = "data/participants.json";
 let msg = "";
 var json;
 let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortoise" ];
@@ -25,15 +25,15 @@ function capitalize(word) {
 }
 
 // Update json file on disk
-function updateFile(data) {
-  let tmpFile = raidFile+ ".tmp";
+function updateFile(file, data) {
+  let tmpFile = file+ ".tmp";
   let json = JSON.stringify(data, null, 4)
-  process.stdout.write("Updating file " + raidFile + "... ");
+  process.stdout.write("Updating file " + file + "... ");
   fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
       return console.err(err);
     } else {
-      fs.rename(tmpFile, raidFile, function(err) {
+      fs.rename(tmpFile, file, function(err) {
         if (err) {
           return console.err(err);
         }
@@ -120,11 +120,11 @@ bot.on('ready', function (evt) {
 });
 
 // Load nextRaid.json file
-console.log("Opening file " + raidFile);
-fs.exists(raidFile, function(exists) {
+console.log("Opening file " + pFile);
+fs.exists(pFile, function(exists) {
   if (exists) {
-    console.log("Reading file " + raidFile);
-    fs.readFile(raidFile, 'utf8', function (err, data) {
+    console.log("Reading file " + pFile);
+    fs.readFile(pFile, 'utf8', function (err, data) {
       if (err) {
         return console.error(err);
       } else {
@@ -132,7 +132,7 @@ fs.exists(raidFile, function(exists) {
       }
     })
   } else {
-      console.log("File: " + raidFile + " does not exist");
+      console.log("File: " + pFile + " does not exist");
   }
 });
 
@@ -185,13 +185,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              if (!found) {
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
-               updateFile(participants);
+               updateFile(pFile, participants);
                team = capitalize(team);
                msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
                if (found.team != team) {
                  found.team = team;
-                 updateFile(participants);
+                 updateFile(pFile, participants);
                  team = capitalize(team);
                  msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
                } else {
@@ -209,7 +209,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            });
            if (found) {
              participants = participants.filter(u => u.name != userID);
-             updateFile(participants);
+             updateFile(pFile, participants);
              msg = sender + ", you are unregistered from the next raid";
            } else {
              msg = notRegistered;
@@ -243,11 +243,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (found) {
             if (found.status) {
               found.status = 0;
-              updateFile(participants);
+              updateFile(pFile, participants);
               msg = sender + ", you are no longer checked in";
             } else {
               found.status = 1;
-              updateFile(participants);
+              updateFile(pFile, participants);
               msg = sender + ", you are checked in";
             }
           } else {
@@ -305,7 +305,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           });
           if (found) {
             found.damage = parseInt(input);
-            updateFile(participants);
+            updateFile(pFile, participants);
             msg = sender + ", your damage has been recorded";
           } else {
             msg = notRegistered;
@@ -325,7 +325,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           Object.keys(participants).forEach(function(key) {
             participants[key].status = 0;
           });
-          updateFile(participants);
+          updateFile(pFile, participants);
         break;
 
         // Clear damage report and reset for next run
@@ -337,7 +337,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           Object.keys(participants).forEach(function(key) {
             participants[key].damage = 0;
           });
-          updateFile(participants);
+          updateFile(pFile, participants);
         break;
 
         // Tag folks who registered but haven't checked in yet

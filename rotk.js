@@ -8,9 +8,11 @@ var botname = "ROTKbot";
 // name, team, status and damage
 var participants = [];
 var teams = ["main", "sub", "looter"];
-var date = "October 29 2018 21:00 CDT";
+// Next raid time is now stored in a local file
+var raidDateFile = "./data/nextRaid.json"
+var date = require(raidDateFile).date;
 var raidDate = new Date(date);
-var pFile = "data/participants.json";
+var pFile = "./data/participants.json";
 let msg = "";
 var json;
 let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortoise" ];

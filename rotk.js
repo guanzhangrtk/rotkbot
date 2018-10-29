@@ -8,7 +8,7 @@ var botname = "ROTKbot";
 // name, team, status and damage
 var participants = [];
 var teams = ["main", "sub", "looter"];
-var date = "October 26 2018 21:00 CDT";
+var date = "October 29 2018 21:00 CDT";
 var raidDate = new Date(date);
 var pFile = "data/participants.json";
 let msg = "";
@@ -28,6 +28,7 @@ function capitalize(word) {
 function updateFile(file, data) {
   let tmpFile = file+ ".tmp";
   let json = JSON.stringify(data, null, 4)
+  printNowTime();
   process.stdout.write("Updating file " + file + "... ");
   fs.writeFile(tmpFile, json, 'utf8', function(err) {
     if (err) {
@@ -108,7 +109,13 @@ function timeLeft() {
   return time + " minutes";
 }
 
+function printNowTime() {
+  let now = new Date();
+  process.stdout.write("[" + now.toLocaleString('en-US', {hour12: false}) + "] ");
+}
+
 // Init ROTKbot
+printNowTime();
 console.log("Initializing " + botname);
 var bot = new Discord.Client({
   token: auth.token,
@@ -116,13 +123,16 @@ var bot = new Discord.Client({
 });
 
 bot.on('ready', function (evt) {
+  printNowTime();
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
 // Load nextRaid.json file
+printNowTime();
 console.log("Opening file " + pFile);
 fs.exists(pFile, function(exists) {
   if (exists) {
+    printNowTime();
     console.log("Reading file " + pFile);
     fs.readFile(pFile, 'utf8', function (err, data) {
       if (err) {

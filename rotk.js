@@ -109,9 +109,31 @@ function timeLeft() {
   return time + " minutes";
 }
 
+// Print out current time for logging
 function printNowTime() {
   let now = new Date();
   process.stdout.write("[" + now.toLocaleString('en-US', {hour12: false}) + "] ");
+}
+
+// Load specified file
+function loadFile(file) {
+  printNowTime();
+  console.log("Opening file " + file);
+  fs.exists(file, function(exists) {
+    if (exists) {
+      printNowTime();
+      console.log("Reading file " + file);
+      fs.readFile(file, 'utf8', function (err, data) {
+        if (err) {
+          return console.error(err);
+        } else {
+          participants = JSON.parse(data);
+        }
+      })
+    } else {
+        console.log("File: " + file + " does not exist");
+    }
+  })
 }
 
 // Init ROTKbot
@@ -127,24 +149,8 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
-// Load nextRaid.json file
-printNowTime();
-console.log("Opening file " + pFile);
-fs.exists(pFile, function(exists) {
-  if (exists) {
-    printNowTime();
-    console.log("Reading file " + pFile);
-    fs.readFile(pFile, 'utf8', function (err, data) {
-      if (err) {
-        return console.error(err);
-      } else {
-        participants = JSON.parse(data);
-      }
-    })
-  } else {
-      console.log("File: " + pFile + " does not exist");
-  }
-});
+// Load the participants file into memory
+loadFile(pFile);
 
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;
@@ -155,7 +161,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
-     var cmd = args[0];
+     var cmd = args[0].toLowerCase();
 
      args = args.splice(1);
      switch(cmd) {

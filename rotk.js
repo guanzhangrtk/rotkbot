@@ -246,12 +246,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List raid participants
         case 'list':
+           let str = "are";
            count = participants.length;
            // Check if anybody has registered
            if (count == 0) {
               msg = "Currently nobody has registered for the next raid."
            } else {
-              msg = "There are currently " +count+ " participants: \n";
+              if (count == 1) {
+                str = "is"; 
+              }
+              msg = "There " + str + " currently " +count+ " participant(s): \n";
               teams.forEach(function(team) {
                  teamObj = participants.filter(p => p.team === team);
                  if (Object.keys(teamObj).length) {

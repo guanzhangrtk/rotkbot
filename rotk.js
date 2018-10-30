@@ -141,7 +141,8 @@ function loadFile(file) {
         }
       })
     } else {
-        console.log("File: " + file + " does not exist");
+        printNowTime();
+        console.log("File " + file + " does not exist");
     }
   })
 }

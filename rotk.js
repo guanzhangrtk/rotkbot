@@ -55,35 +55,43 @@ function printTeam(msg, obj, evt) {
   let userObj;
 
   Object.keys(obj).forEach(function (key) {
-      userObj = bot.servers[serverID].members[obj[key].name];
-      // Prints server-specific nickname, if set
-      if (userObj && userObj.nick != null) {
-        username = bot.servers[serverID].members[obj[key].name].nick;
-      } else {
-        username = bot.users[obj[key].name].username;
-      }
-     if (obj[key].status) {
-       username = "**" + username + "**";
-     }
-     msg = msg + username;
-     // Only add comm unless it's the last element
-     if (!(obj.length - 1 == key)) {
-       msg = msg + ", ";
-     }
+    userObj = bot.servers[serverID].members[obj[key].name];
+    // Prints server-specific nickname, if set
+    if (userObj && userObj.nick != null) {
+      username = bot.servers[serverID].members[obj[key].name].nick;
+    } else {
+      username = bot.users[obj[key].name].username;
+    }
+    if (obj[key].status) {
+      username = "**" + username + "**";
+    }
+    msg = msg + username;
+    // Only add comm unless it's the last element
+    if (!(obj.length - 1 == key)) {
+      msg = msg + ", ";
+    }
   });
   return msg + "\n";
 }
 
 // Print damage report and return an array with the report and total damage
-function printDamage(msg, obj) {
+function printDamage(msg, obj, evt) {
+  let serverID = evt.d.guild_id;
   var total = 0.0;
   // Sort by damage in descending order
   obj.sort(function(a, b) {
     return b.damage - a.damage;
   });
   Object.keys(obj).forEach(function (key) {
+    userObj = bot.servers[serverID].members[obj[key].name];
+    // Prints server-specific nickname, if set
+    if (userObj && userObj.nick != null) {
+      username = bot.servers[serverID].members[obj[key].name].nick;
+    } else {
+      username = bot.users[obj[key].name].username;
+    }
     pc = obj[key].damage/hp*100;
-    msg = msg + bot.users[obj[key].name].username + ": " +obj[key].damage+ " (" + pc.toFixed(2)+ "%)\n";
+    msg = msg + username + ": " +obj[key].damage+ " (" + pc.toFixed(2)+ "%)\n";
     total = total + parseFloat(pc);
   });
   return [ msg, total.toFixed(2) ];
@@ -298,7 +306,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               msg = "Currently there are no damages recorded";
             } else {
               msg = "Damage report:\n";
-              arr = printDamage(msg, damageObj);
+              arr = printDamage(msg, damageObj, evt);
               msg = arr[0];
               total = arr[1];
               msg = msg + "Total: " +total+ "%\n"

@@ -14,6 +14,8 @@ var botname = "ROTKbot";
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var participants = [];
+// nextRaid is an array of 4god, level and date
+var nextRaid = { "4god": "Azure Dragon", "level": "master", "date": "" };
 var teams = ["main", "sub", "looter"];
 // Next raid time is now stored in a local file
 var raidDateFile = "./data/nextRaid.json"
@@ -208,7 +210,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (time.charAt(0) == "-") {
             msg = "There is currently no scheduled raid, please check back again later";
           } else {
-            msg = "The next raid is scheduled for " +date+ " (server time) which is " + time+ " from now";
+            msg = "The next raid will be **" + nextRaid["4god"] + "** **" + nextRaid["level"] + " level** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
           }
           sendDaMessage(channelID, msg);
         break;

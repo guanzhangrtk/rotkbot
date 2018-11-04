@@ -59,6 +59,8 @@ function printTeam(msg, obj, evt) {
     // Prints server-specific nickname, if set
     if (userObj && userObj.nick != null) {
       username = bot.servers[serverID].members[obj[key].name].nick;
+    } else if (bot.users[obj[key].name] == undefined) {
+      username = "Unknown";
     } else {
       username = bot.users[obj[key].name].username;
     }

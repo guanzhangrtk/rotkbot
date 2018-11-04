@@ -404,7 +404,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           sendDaMessage(channelID, msg);
         break;
 
-        // Delete participants.json file to reset all data
+        // Reset all data by clearing in-memory variable
         case 'clearall':
           msg = "";
           if (bot.users[userID].username != "GuanZhang") {

@@ -189,6 +189,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
      var cmd = args[0].toLowerCase();
+     let input = "";
 
      args = args.splice(1);
      switch(cmd) {
@@ -319,7 +320,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         case 'damage':
           let arr = [];
           let total = 0;
-          let input = args[0];
+          input = args[0];
 
           if (input === undefined) {
             damageObj = participants.filter(p => p.damage > 0);
@@ -417,6 +418,28 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           participants = [];
           updateFile(pFile, participants);
           msg = "All data has been cleared";
+          sendDaMessage(channelID, msg);
+        break;
+
+        // Update next raid time
+        case 'updateraid':
+          input = args.join(" ");
+          let dateObj = {};
+          msg = "";
+          if (bot.users[userID].username != "GuanZhang") {
+            console.log("Unauthorized command by " + bot.users[userID].username);
+            break;
+          }
+
+          if (!isNaN(Date.parse(input))) {
+            raidDate = new Date(input);
+            date = input;
+            dateObj = { "date": input };
+            updateFile(raidDateFile, dateObj);
+            msg = "The next raid has been set to " + input;
+          } else {
+            msg = "Invalid date, please enter date in format `November 2 2018 20:00 CDT`";
+          }
           sendDaMessage(channelID, msg);
         break;
      }

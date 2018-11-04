@@ -1,10 +1,13 @@
 {
   "name": "rotk-bot",
-  "version": "0.22",
+  "version": "1.0.0",
   "description": "ROTKbot",
   "main": "rotk.js",
   "author": "GuanZhang",
   "dependencies": {
     "discord.io": "https://github.com/woor/discord.io/tarball/gateway_v6"
+  },
+  "scripts": {
+    "start": "node rotk.js"
   }
 }

@@ -1,7 +1,14 @@
 // ROTKbot version 0.22 (C)opyright 2018 GuanZhang
 
 var Discord = require('discord.io');
-var auth = require('./auth.json');
+var token;
+// If auth.json is not found, we are probably deploying via ZEIT Now
+try {
+  var auth = require("./auth.json");
+  token = auth.token;
+} catch (err) {
+  token = process.env.TOKEN;
+}
 var fs = require("fs");
 var botname = "ROTKbot";
 // participants is an array of player objects consisting of
@@ -20,6 +27,8 @@ let levels = [ "minor", "intermediate", "advanced", "master" ];
 let hp = 792900;
 let found;
 let time = "";
+// Needed for ZEIT Now deployments
+require('http').createServer().listen(3000)
 
 // Capitalize first character of the word
 function capitalize(word) {
@@ -167,7 +176,7 @@ function delFile(file) {
 printNowTime();
 console.log("Initializing " + botname);
 var bot = new Discord.Client({
-  token: auth.token,
+  token: token,
   autorun: true
 });
 

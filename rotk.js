@@ -151,6 +151,18 @@ function loadFile(file) {
   })
 }
 
+// Delete specified file
+function delFile(file) {
+  fs.unlink(file, function(err) {
+    if (err) {
+      return console.error(err);
+    } else {
+      printNowTime();
+      console.log("File " + file + " deleted");
+    }
+  })
+}
+
 // Init ROTKbot
 printNowTime();
 console.log("Initializing " + botname);
@@ -389,6 +401,22 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             }
           });
           msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+          sendDaMessage(channelID, msg);
+        break;
+
+        // Delete participants.json file to reset all data
+        case 'clearall':
+          msg = "";
+          if (bot.users[userID].username != "GuanZhang") {
+            console.log("Unauthorized command by " + bot.users[userID].username);
+            break;
+          }
+          printNowTime();
+          console.log("[clearall]");
+          // clear in-memory data
+          participants = [];
+          updateFile(pFile, participants);
+          msg = "All data has been cleared";
           sendDaMessage(channelID, msg);
         break;
      }

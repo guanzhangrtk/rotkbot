@@ -15,7 +15,7 @@ var botname = "ROTKbot";
 // name, team, status and damage
 var participants = [];
 // nextRaid is an array of 4god, level and date
-var nextRaid = { "4god": "Azure Dragon", "level": "master", "date": "" };
+var nextRaid = { "4gods": "Azure Dragon", "level": "master", "date": "" };
 var teams = ["main", "sub", "looter"];
 // Next raid time is now stored in a local file
 var raidDateFile = "./data/nextRaid.json"
@@ -24,9 +24,19 @@ var raidDate = new Date(date);
 var pFile = "./data/participants.json";
 let msg = "";
 var json;
-let fourGods = [ "Azure Dragon", "Vermilion Bird", "White Tiger", "Black Tortoise" ];
-let levels = [ "minor", "intermediate", "advanced", "master" ];
-let hp = 792900;
+// Azure Dragon boss HP
+let ad_hp = { "minor": 124499,
+              "intermediate": 256000,
+              "advanced": 482000,
+              "master": 792900
+            };
+// Vermillion Bird boss HP (FIXME)
+let vb_hp = { "minor": 124499,
+              "intermediate": 183879,
+              "advanced": 482000,
+              "master": 843390
+            };
+let hp = 0;
 let found;
 let time = "";
 // Needed for ZEIT Now deployments
@@ -196,6 +206,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
   let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
 
+  // Look up boss HP depending on level
+  switch(nextRaid["4gods"]) {
+    case 'Azure Dragon':
+      hp = ad_hp[nextRaid["level"]];
+    break;
+
+    case 'Vermillion Bird':
+      hp = vb_hp[nextRaid["level"]];
+    break;
+  };
+
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
      var args = message.substring(1).split(' ');
@@ -210,7 +231,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (time.charAt(0) == "-") {
             msg = "There is currently no scheduled raid, please check back again later";
           } else {
-            msg = "The next raid will be **" + nextRaid["4god"] + "** **" + nextRaid["level"] + " level** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
+            msg = "The next raid will be **" + nextRaid["4gods"] + "** **" + nextRaid["level"] + " level** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
           }
           sendDaMessage(channelID, msg);
         break;
@@ -354,7 +375,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             break;
           }
 
-          if ((isNaN(input) || parseInt(input) < 0 || parseInt(input) >= hp)) {
+          if ((isNaN(input) || parseInt(input) < 0 || parseInt(input) > hp)) {
             msg = sender + ", you have entered an invalid number, please enter a positive number less than or equal to " + hp + " (HP of boss)";
             sendDaMessage(channelID, msg);
             break;

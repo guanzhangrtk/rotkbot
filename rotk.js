@@ -33,7 +33,7 @@ let ad_hp = { "minor": 124499,
 // Vermillion Bird boss HP (FIXME)
 let vb_hp = { "minor": 124499,
               "intermediate": 183879,
-              "advanced": 482000,
+              "advanced": 482859,
               "master": 843390
             };
 let hp = 0;

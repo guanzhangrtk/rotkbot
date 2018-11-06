@@ -454,7 +454,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         break;
 
         // Update next raid time
-        case 'updateraid':
+        case 'updatetime':
           input = args.join(" ");
           let dateObj = {};
           msg = "";

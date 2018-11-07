@@ -11,6 +11,7 @@ try {
 }
 var fs = require("fs");
 var botname = "ROTKbot";
+var authorizedUsers = [ "GuanZhang#9024" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var participants = [];
@@ -182,6 +183,18 @@ function delFile(file) {
       console.log("File " + file + " deleted");
     }
   })
+}
+
+// Check to see if user is authorized to use command
+function isAuthorized(user, channel) {
+  let username = bot.users[user].username + "#" + bot.users[user].discriminator;
+  if (!authorizedUsers.includes(username)) {
+    msg = bot.users[user].username + ", you are not authorized to run that command";
+    sendDaMessage(channel, msg);
+    return false;
+  } else {
+    return true;
+  }
 }
 
 // Init ROTKbot
@@ -394,12 +407,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         break;
 
         // The follow commands are meant to be used by the superuser
-        // TODO restrict access
 
         // Uncheck-in all participants (useful for running back-to-back raids)
         case 'uncheckin':
-          if (bot.users[userID].username != "GuanZhang") {
-            console.log("Unauthorized command by " + bot.users[userID].username);
+          if (!isAuthorized(userID, channelID)) {
             break;
           }
           Object.keys(participants).forEach(function(key) {
@@ -410,8 +421,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Clear damage report and reset for next run
         case 'cleardamage':
-          if (bot.users[userID].username != "GuanZhang") {
-            console.log("Unauthorized command by " + bot.users[userID].username);
+          if (!isAuthorized(userID, channelID)) {
             break;
           }
           Object.keys(participants).forEach(function(key) {
@@ -423,8 +433,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Tag folks who registered but haven't checked in yet
         case 'nag':
           msg = "";
-          if (bot.users[userID].username != "GuanZhang") {
-            console.log("Unauthorized command by " + bot.users[userID].username);
+          if (!isAuthorized(userID, channelID)) {
             break;
           }
           time = timeLeft();
@@ -440,8 +449,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Reset all data by clearing in-memory variable
         case 'clearall':
           msg = "";
-          if (bot.users[userID].username != "GuanZhang") {
-            console.log("Unauthorized command by " + bot.users[userID].username);
+          if (!isAuthorized(userID, channelID)) {
             break;
           }
           printNowTime();
@@ -458,11 +466,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           input = args.join(" ");
           let dateObj = {};
           msg = "";
-          if (bot.users[userID].username != "GuanZhang") {
-            console.log("Unauthorized command by " + bot.users[userID].username);
+          if (!isAuthorized(userID, channelID)) {
             break;
           }
-
           if (!isNaN(Date.parse(input))) {
             raidDate = new Date(input);
             date = input;

@@ -15,14 +15,24 @@ var authorizedUsers = [ "GuanZhang#9024" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var participants = [];
-// nextRaid is an array of 4god, level and date
-var nextRaid = { "4gods": "Azure Dragon", "level": "master", "date": "" };
+var fourGods = [ "dragon", "bird" ];
+var levels = [ "minor", "intermediate", "advanced", "master" ];
+var nextRaid = { "4gods": "dragon", "level": "master", "date": "" };
 var teams = ["main", "sub", "looter"];
-// Next raid time is now stored in a local file
-var raidDateFile = "./data/nextRaid.json"
-var date = require(raidDateFile).date;
-var raidDate = new Date(date);
+var nextRaidFile = "./data/nextRaid.json"
+try {
+  nextRaid = require(nextRaidFile);
+} catch (err) {
+  printNowTime();
+  console.log("File " + nextRaidFile + " does not exist");  
+}
 var pFile = "./data/participants.json";
+try {
+  participants = require(pFile);
+} catch (err) {
+  printNowTime();
+  console.log("File " + pFile + " does not exist");  
+}
 let msg = "";
 var json;
 // Azure Dragon boss HP
@@ -31,8 +41,8 @@ let ad_hp = { "minor": 124499,
               "advanced": 482000,
               "master": 792900
             };
-// Vermillion Bird boss HP (FIXME)
-let vb_hp = { "minor": 124499,
+// Vermillion Bird boss HP
+let vb_hp = { "minor": 124899,
               "intermediate": 183879,
               "advanced": 482859,
               "master": 843390
@@ -40,6 +50,7 @@ let vb_hp = { "minor": 124499,
 let hp = 0;
 let found;
 let time = "";
+
 // Needed for ZEIT Now deployments
 require('http').createServer().listen(3000)
 
@@ -151,28 +162,6 @@ function printNowTime() {
   process.stdout.write("[" + now.toLocaleString('en-US', {hour12: false}) + "] ");
 }
 
-// Load specified file
-function loadFile(file) {
-  printNowTime();
-  console.log("Opening file " + file);
-  fs.exists(file, function(exists) {
-    if (exists) {
-      printNowTime();
-      console.log("Reading file " + file);
-      fs.readFile(file, 'utf8', function (err, data) {
-        if (err) {
-          return console.error(err);
-        } else {
-          participants = JSON.parse(data);
-        }
-      })
-    } else {
-        printNowTime();
-        console.log("File " + file + " does not exist");
-    }
-  })
-}
-
 // Delete specified file
 function delFile(file) {
   fs.unlink(file, function(err) {
@@ -210,8 +199,8 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
-// Load the participants file into memory
-loadFile(pFile);
+var date = nextRaid["date"];
+var raidDate = new Date(date);
 
 bot.on('message', function (user, userID, channelID, message, evt) {
   let sender = bot.users[userID].username;
@@ -219,16 +208,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
   let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
 
-  // Look up boss HP depending on level
-  switch(nextRaid["4gods"]) {
-    case 'Azure Dragon':
-      hp = ad_hp[nextRaid["level"]];
-    break;
-
-    case 'Vermillion Bird':
-      hp = vb_hp[nextRaid["level"]];
-    break;
-  };
 
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
@@ -241,10 +220,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Raid info
         case 'raid':
           time = timeLeft();
-          if (time.charAt(0) == "-") {
+          if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
             msg = "There is currently no scheduled raid, please check back again later";
           } else {
-            msg = "The next raid will be **" + nextRaid["4gods"] + "** **" + nextRaid["level"] + " level** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
+            msg = "The next raid will be **" + nextRaid["level"] + " level " + nextRaid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
           }
           sendDaMessage(channelID, msg);
         break;
@@ -363,6 +342,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Print damage report or register damage
         case 'damage':
+          // Look up boss HP depending on level
+          switch(nextRaid["4gods"]) {
+            case 'dragon':
+              hp = ad_hp[nextRaid["level"]];
+            break;
+
+            case 'bird':
+              hp = vb_hp[nextRaid["level"]];
+            break;
+           };
+
           let arr = [];
           let total = 0;
           input = args[0];
@@ -461,10 +451,32 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           sendDaMessage(channelID, msg);
         break;
 
+        // Update next raid and level
+        case 'updateraid':
+          let fourGod = args[0];
+          let level = args[1];
+          msg = "";
+          if (!isAuthorized(userID, channelID)) {
+            break;
+          }
+          if (args.length < 2 || args.length > 2) {
+            msg = "Invalid options, please specify the 4gods and level for the next raid, eg. `!updateraid dragon minor`";
+          } else if (!levels.includes(level)) {
+            msg = "You have specified an invalid level, valid options are " + levels.map(e => e).join(", ");
+          } else if (!fourGods.includes(fourGod)) {
+            msg = "You have specified an invalid 4gods, valid options are " + fourGods.map(e => e).join(", ");
+          } else {
+            msg = "The next raid has been set to " + level + " level  " + fourGod + " raid";
+            nextRaid["4gods"] = fourGod;
+            nextRaid["level"] = level;
+            updateFile(nextRaidFile, nextRaid);
+          }
+          sendDaMessage(channelID, msg);
+        break;
+
         // Update next raid time
         case 'updatetime':
           input = args.join(" ");
-          let dateObj = {};
           msg = "";
           if (!isAuthorized(userID, channelID)) {
             break;
@@ -472,8 +484,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (!isNaN(Date.parse(input))) {
             raidDate = new Date(input);
             date = input;
-            dateObj = { "date": input };
-            updateFile(raidDateFile, dateObj);
+            nextRaid["date"] = input;
+            updateFile(nextRaidFile, nextRaid);
             msg = "The next raid has been set to " + input;
           } else {
             msg = "Invalid date, please enter date in format `November 2 2018 20:00 CDT`";

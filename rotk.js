@@ -204,6 +204,10 @@ var date = nextRaid["date"];
 var raidDate = new Date(date);
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+  // Webhooks don't have userIDs, so ignore them
+  if (!bot.users[userID]) {
+    return;
+  }
   let sender = bot.users[userID].username;
   let validTeams = teams.map(e => capitalize(e)).join(", ");
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";

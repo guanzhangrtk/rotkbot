@@ -497,6 +497,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           sendDaMessage(channelID, msg);
         break;
+
+        // Dump JSON
+        case 'dump':
+          if (!isAuthorized(userID, channelID)) {
+            break;
+          }
+          msg = "participants```" + JSON.stringify(participants, null, 4) + "```";
+          msg = msg + "nextRaid```" + JSON.stringify(nextRaid, null,4) + "```";
+          sendDaMessage(channelID, msg); 
+        break;
      }
   }
 });

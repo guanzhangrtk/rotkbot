@@ -11,7 +11,8 @@ try {
 }
 var fs = require("fs");
 var botname = "ROTKbot";
-var authorizedUsers = [ "GuanZhang#9024" ];
+// FIXME need to use roles instead
+var authorizedUsers = [ "GuanZhang#9024", "danhtran#5467", "Rinth#6469", "RWal#5900" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var participants = [];

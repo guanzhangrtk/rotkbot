@@ -471,7 +471,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           } else if (!fourGods.includes(fourGod)) {
             msg = "You have specified an invalid 4gods, valid options are " + fourGods.map(e => e).join(", ");
           } else {
-            msg = "The next raid has been set to " + level + " level  " + fourGod + " raid";
+            msg = "The next raid has been set to " + level + " level " + fourGod + " raid";
             nextRaid["4gods"] = fourGod;
             nextRaid["level"] = level;
             updateFile(nextRaidFile, nextRaid);

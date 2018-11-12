@@ -9,7 +9,7 @@ Available commands:
  * !register Register for the next raid (options are Main, Sub or Looter)
  * !unregister Un-register from the next raid
  * !list List the current participants for the next raid
- * !checkin Check-in during roll call (to un-checkin, invoke command twice)
+ * !checkin Check-in during roll call (to un-checkin, invoke command again)
  * !damage Print damage report or register damage
 
 Here are some places you can find him:

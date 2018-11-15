@@ -323,9 +323,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               updateFile(pFile, participants);
               msg = sender + ", you are no longer checked in";
             } else {
-              found.status = 1;
-              updateFile(pFile, participants);
-              msg = sender + ", you are checked in";
+              time = timeLeft();
+              // Only allow check in an hour before scheduled time
+              if (time.includes("hours")) {
+                msg = sender + ", you can only check in one hour in advance";
+              } else {
+                found.status = 1;
+                updateFile(pFile, participants);
+                msg = sender + ", you are checked in";
+              }
             }
           } else {
             msg = notRegistered;

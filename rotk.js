@@ -1,4 +1,4 @@
-// ROTKbot version 0.22 (C)opyright 2018 GuanZhang
+// ROTKbot version 1.0.0 (C)opyright 2018 GuanZhang
 
 var Discord = require('discord.io');
 var token;

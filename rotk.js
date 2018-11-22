@@ -283,8 +283,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 			 // User is already registered      
                          msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
                        }
+                       sendDaMessage(channelID, msg);
                      };
-                     sendDaMessage(channelID, msg);
 		   }
 	         })
 	       } else {

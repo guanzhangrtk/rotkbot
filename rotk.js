@@ -34,18 +34,24 @@ var nextRaid = [];
 var teams = ["main", "sub", "looter"];
 let msg = "";
 var json;
-// Azure Dragon boss HP
-let ad_hp = { "minor": 124499,
+
+// Four Gods boss HP
+let fg_hp = {
+  "dragon": { "minor": 124499,
               "intermediate": 256000,
               "advanced": 482000,
               "master": 792900
-            };
-// Vermillion Bird boss HP
-let vb_hp = { "minor": 124899,
-              "intermediate": 183879,
-              "advanced": 482859,
-              "master": 843390
-            };
+            },
+  "bird": { "minor": 124899,
+            "intermediate": 183879,
+            "advanced": 482859,
+            "master": 843390
+          },
+  "tiger": {
+	   },
+  "tortoise": {
+	      }
+}; 
 let hp = 0;
 let found;
 let time = "";
@@ -404,11 +410,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               // Look up boss HP depending on level
               switch(nextRaid["4gods"]) {
                 case 'dragon':
-                  hp = ad_hp[nextRaid["level"]];
+                  hp = fg_hp['dragon'][nextRaid["level"]];
                 break;
 
                 case 'bird':
-                  hp = vb_hp[nextRaid["level"]];
+                  hp = fg_hp['bird'][nextRaid["level"]];
                 break;
               };
 

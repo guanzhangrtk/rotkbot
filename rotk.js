@@ -9,6 +9,22 @@ try {
 } catch (err) {
   token = process.env.TOKEN;
 }
+var admin = require("firebase-admin");
+
+// Fetch the service account key JSON file contents
+var serviceAccount = require("./firebase_auth.json");
+
+// Initialize the app with a service account, granting admin privileges
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://rotkbot.firebaseio.com"
+});
+
+// As an admin, the app has access to read and write all data, regardless of Security Rules
+var db = admin.database();
+var ref = db.ref("restricted_access/secret_document");
+var participantsRef = ref.child("participants");
+var raidRef = ref.child("nextRaid");
 var fs = require("fs");
 var botname = "ROTKbot";
 // FIXME need to use roles instead
@@ -18,22 +34,9 @@ var authorizedUsers = [ "GuanZhang#9024", "BankCodeLove#2103", "Rinth#6469", "RW
 var participants = [];
 var fourGods = [ "dragon", "bird" ];
 var levels = [ "minor", "intermediate", "advanced", "master" ];
-var nextRaid = { "4gods": "dragon", "level": "master", "date": "" };
+var nextRaid = [];
 var teams = ["main", "sub", "looter"];
 var nextRaidFile = "./data/nextRaid.json"
-try {
-  nextRaid = require(nextRaidFile);
-} catch (err) {
-  printNowTime();
-  console.log("File " + nextRaidFile + " does not exist");  
-}
-var pFile = "./data/participants.json";
-try {
-  participants = require(pFile);
-} catch (err) {
-  printNowTime();
-  console.log("File " + pFile + " does not exist");  
-}
 let msg = "";
 var json;
 // Azure Dragon boss HP
@@ -60,24 +63,11 @@ function capitalize(word) {
   return word.charAt(0).toUpperCase() + word.substr(1);
 }
 
-// Update json file on disk
-function updateFile(file, data) {
-  let tmpFile = file+ ".tmp";
-  let json = JSON.stringify(data, null, 4)
+// Update key on Firebase
+function updateFirebase(ref, data) {
   printNowTime();
-  process.stdout.write("Updating file " + file + "... ");
-  fs.writeFile(tmpFile, json, 'utf8', function(err) {
-    if (err) {
-      return console.err(err);
-    } else {
-      fs.rename(tmpFile, file, function(err) {
-        if (err) {
-          return console.err(err);
-        }
-      });
-    }
-  });
-  console.log("done");
+  console.log("Updating key " + ref.key + " on Firebase");
+  ref.set(data);
 };
 
 // Print members of each team
@@ -145,16 +135,23 @@ function sendDaMessage(channelID, msg) {
 
 // Calculate how much time until the next raid
 function timeLeft() {
-  let now = new Date();
-  let diff = (raidDate - now) / 3600000;
-  let hours = Math.floor(diff);
-  let minutes = Math.floor(diff %1 * 60);
-  if (hours) {
-    time = hours + " hours and " + minutes;
-  } else {
-    time = minutes;
-  }
-  return time + " minutes";
+  return new Promise(resolve => {
+    raidRef.once('value').then(function(snapshot) {
+      nextRaid = snapshot.val();
+      let date = nextRaid["date"];
+      let raidDate = new Date(date);
+      let now = new Date();
+      let diff = (raidDate - now) / 3600000;
+      let hours = Math.floor(diff); 
+      let minutes = Math.floor(diff %1 * 60);
+      if (hours) {
+        time = hours + " hours and " + minutes;
+      } else { 
+        time = minutes;
+      }
+      resolve(time + " minutes");
+    });
+  })
 }
 
 // Print out current time for logging
@@ -200,8 +197,16 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
-var date = nextRaid["date"];
-var raidDate = new Date(date);
+var nextRaid = raidRef.once('value', function(snapshot) {
+  nextRaid = {};
+  if (snapshot.val()) {
+    nextRaid = snapshot.val();
+    var date = nextRaid["date"];
+    var raidDate = new Date(date);
+  } else {
+    nextRaid = { "4gods": "dragon", "level": "master", "date": "" };
+  }
+});
 
 bot.on('message', function (user, userID, channelID, message, evt) {
   // Webhooks don't have userIDs, so ignore them
@@ -224,13 +229,21 @@ bot.on('message', function (user, userID, channelID, message, evt) {
      switch(cmd) {
         // Raid info
         case 'raid':
-          time = timeLeft();
-          if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
-            msg = "There is currently no scheduled raid, please check back again later";
-          } else {
-            msg = "The next raid will be **" + nextRaid["level"] + " level " + nextRaid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
-          }
-          sendDaMessage(channelID, msg);
+          raidRef.once('value').then(function(snapshot) {
+            var nextRaid = snapshot.val();
+            var date = nextRaid["date"];
+            var raidDate = new Date(date);
+            var time;
+  
+            timeLeft().then(time => {
+              if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
+                msg = "There is currently no scheduled raid, please check back again later";
+              } else {
+                msg = "The next raid will be **" + nextRaid["level"] + " level " + nextRaid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
+              }
+              sendDaMessage(channelID, msg);
+            });
+          });
         break;
  
         // Register for raid
@@ -258,13 +271,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              if (!found) {
                var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                participants.push(player);
-               updateFile(pFile, participants);
+               updateFirebase(participantsRef, participants);
                team = capitalize(team);
                msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
              } else {
                if (found.team != team) {
                  found.team = team;
-                 updateFile(pFile, participants);
+                 updateFirebase(participantsRef, participants);
                  team = capitalize(team);
                  msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
                } else {
@@ -282,7 +295,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
            });
            if (found) {
              participants = participants.filter(u => u.name != userID);
-             updateFile(pFile, participants);
+             updateFirebase(participantsRef, participants);
              msg = sender + ", you are unregistered from the next raid";
            } else {
              msg = notRegistered;
@@ -292,24 +305,27 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List raid participants
         case 'list':
-           let str = "are";
-           count = participants.length;
-           // Check if anybody has registered
-           if (count == 0) {
-              msg = "Currently nobody has registered for the next raid."
-           } else {
-              if (count == 1) {
-                str = "is"; 
-              }
-              msg = "There " + str + " currently " +count+ " participant(s): \n";
-              teams.forEach(function(team) {
-                 teamObj = participants.filter(p => p.team === team);
-                 if (Object.keys(teamObj).length) {
-                  msg = printTeam(msg, teamObj, evt);
-                 }
-              });
-           };
-           sendDaMessage(channelID, msg);
+           participantsRef.once('value').then(function(snapshot) {
+             participants = snapshot.val();
+             let str = "are";
+             count = participants.length;
+             // Check if anybody has registered
+             if (count == 0) {
+               msg = "Currently nobody has registered for the next raid."
+             } else {
+                if (count == 1) {
+                  str = "is"; 
+                }
+                msg = "There " + str + " currently " +count+ " participant(s): \n";
+                teams.forEach(function(team) {
+                  teamObj = participants.filter(p => p.team === team);
+                  if (Object.keys(teamObj).length) {
+                    msg = printTeam(msg, teamObj, evt);
+                  }
+                });
+             }
+             sendDaMessage(channelID, msg);
+           });
         break;
 
         // Check in during roll call
@@ -320,7 +336,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (found) {
             if (found.status) {
               found.status = 0;
-              updateFile(pFile, participants);
+              updateFirebase(participantsRef, participants);
               msg = sender + ", you are no longer checked in";
             } else {
               time = timeLeft();
@@ -329,7 +345,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 msg = sender + ", you can only check in one hour in advance";
               } else {
                 found.status = 1;
-                updateFile(pFile, participants);
+                updateFirebase(participantsRef, participants);
                 msg = sender + ", you are checked in";
               }
             }
@@ -399,7 +415,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           });
           if (found) {
             found.damage = parseInt(input);
-            updateFile(pFile, participants);
+            updateFirebase(participantsRef, participants);
             msg = sender + ", your damage has been recorded";
           } else {
             msg = notRegistered;
@@ -417,7 +433,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           Object.keys(participants).forEach(function(key) {
             participants[key].status = 0;
           });
-          updateFile(pFile, participants);
+          updateFirebase(participantsRef, participants);
         break;
 
         // Clear damage report and reset for next run
@@ -428,7 +444,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           Object.keys(participants).forEach(function(key) {
             participants[key].damage = 0;
           });
-          updateFile(pFile, participants);
+          updateFirebase(participantsRef, participants);
         break;
 
         // Tag folks who registered but haven't checked in yet
@@ -457,7 +473,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           console.log("[clearall]");
           // clear in-memory data
           participants = [];
-          updateFile(pFile, participants);
+          updateFirebase(participantsRef, participants);
           msg = "All data has been cleared";
           sendDaMessage(channelID, msg);
         break;
@@ -480,7 +496,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             msg = "The next raid has been set to " + level + " level " + fourGod + " raid";
             nextRaid["4gods"] = fourGod;
             nextRaid["level"] = level;
-            updateFile(nextRaidFile, nextRaid);
+            updateFirebase(raidRef, nextRaid);
           }
           sendDaMessage(channelID, msg);
         break;
@@ -496,7 +512,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             raidDate = new Date(input);
             date = input;
             nextRaid["date"] = input;
-            updateFile(nextRaidFile, nextRaid);
+            updateFirebase(raidRef, nextRaid);
             msg = "The next raid has been set to " + input;
           } else {
             msg = "Invalid date, please enter date in format `November 2 2018 20:00 CDT`";

@@ -27,10 +27,11 @@ var botname = "ROTKbot";
 var authorizedUsers = [ "GuanZhang#9024", "BankCodeLove#2103", "Rinth#6469", "RWal#5900" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
+var defaultRaid = { "4gods": "dragon", "level": "master", "date": "" };
 var participants = [];
 var fourGods = [ "dragon", "bird" ];
 var levels = [ "minor", "intermediate", "advanced", "master" ];
-var nextRaid = [];
+var raid = [];
 var teams = ["main", "sub", "looter"];
 let msg = "";
 var json;
@@ -138,11 +139,11 @@ function sendDaMessage(channelID, msg) {
 function timeLeft(evt) {
   let serverID = evt.d.guild_id;
   var ref = db.ref(serverID);
-  var raidRef = ref.child("nextRaid");
+  var raidRef = ref.child("raid");
   return new Promise(resolve => {
     raidRef.once('value').then(function(snapshot) {
-      nextRaid = snapshot.val();
-      let date = nextRaid["date"];
+      raid = snapshot.val();
+      let date = raid["date"];
       let raidDate = new Date(date);
       let now = new Date();
       let diff = (raidDate - now) / 3600000;
@@ -189,7 +190,7 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
-nextRaid = { "4gods": "dragon", "level": "master", "date": "" };
+raid = defaultRaid;
 
 bot.on('message', function (user, userID, channelID, message, evt) {
   // Webhooks don't have userIDs, so ignore them
@@ -203,7 +204,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let serverID = evt.d.guild_id;
   var ref = db.ref(serverID);
   var participantsRef = ref.child("participants");
-  var raidRef = ref.child("nextRaid");
+  var raidRef = ref.child("raid");
 
 
   // Bot will listen on '!' commands
@@ -217,9 +218,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Raid info
         case 'raid':
           raidRef.once('value').then(function(snapshot) {
-            var nextRaid = snapshot.val();
-            if (nextRaid) {
-              var date = nextRaid["date"];
+            var raid = snapshot.val();
+            if (raid) {
+              var date = raid["date"];
               var raidDate = new Date(date);
               var time;
   
@@ -227,7 +228,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
                   msg = "There is currently no scheduled raid, please check back again later";
                 } else {
-                  msg = "The next raid will be **" + nextRaid["level"] + " level " + nextRaid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
+                  msg = "The next raid will be **" + raid["level"] + " level " + raid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
                 }
                 sendDaMessage(channelID, msg);
 	      })
@@ -267,9 +268,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                    return player.name == userID;
                  });
 		 raidRef.once('value').then(function(snapshot) {
-		   var nextRaid = snapshot.val();
-                   if (nextRaid) {
-                     var date = nextRaid["date"];
+		   var raid = snapshot.val();
+                   if (raid) {
+                     var date = raid["date"];
 	             // User not found, register him
                      if (!found) {
                        var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
@@ -301,9 +302,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                  updateFirebase(participantsRef, participants);
                  team = capitalize(team);
 		 raidRef.once('value').then(function(snapshot) {
-		   var nextRaid = snapshot.val();
-                   if (nextRaid) {
-                     var date = nextRaid["date"];
+		   var raid = snapshot.val();
+                   if (raid) {
+                     var date = raid["date"];
                      msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
 		   }
                    sendDaMessage(channelID, msg);
@@ -405,16 +406,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Print damage report or register damage
         case 'damage':
           raidRef.once('value').then(function(snapshot) {
-            var nextRaid = snapshot.val();
-            if (nextRaid) {
+            var raid = snapshot.val();
+            if (raid) {
               // Look up boss HP depending on level
-              switch(nextRaid["4gods"]) {
+              switch(raid["4gods"]) {
                 case 'dragon':
-                  hp = fg_hp['dragon'][nextRaid["level"]];
+                  hp = fg_hp['dragon'][raid["level"]];
                 break;
 
                 case 'bird':
-                  hp = fg_hp['bird'][nextRaid["level"]];
+                  hp = fg_hp['bird'][raid["level"]];
                 break;
               };
 
@@ -550,9 +551,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             msg = "You have specified an invalid 4gods, valid options are " + fourGods.map(e => e).join(", ");
           } else {
             msg = "The next raid has been set to " + level + " level " + fourGod + " raid";
-            nextRaid["4gods"] = fourGod;
-            nextRaid["level"] = level;
-            updateFirebase(raidRef, nextRaid);
+            raid["4gods"] = fourGod;
+            raid["level"] = level;
+            updateFirebase(raidRef, raid);
           }
           sendDaMessage(channelID, msg);
         break;
@@ -567,8 +568,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (!isNaN(Date.parse(input))) {
             raidDate = new Date(input);
             date = input;
-            nextRaid["date"] = input;
-            updateFirebase(raidRef, nextRaid);
+            raid["date"] = input;
+            updateFirebase(raidRef, raid);
             msg = "The next raid has been set to " + input;
           } else {
             msg = "Invalid date, please enter date in format `November 2 2018 20:00 CDT`";

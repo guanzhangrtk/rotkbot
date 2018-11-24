@@ -14,10 +14,12 @@ var admin = require("firebase-admin");
 // Fetch the service account key JSON file contents
 var serviceAccount = require("./firebase_auth.json");
 
+var databaseURL = "https://rotkbot.firebaseio.com";
+
 // Initialize the app with a service account, granting admin privileges
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://rotkbot.firebaseio.com"
+  databaseURL: databaseURL
 });
 
 // As an admin, the app has access to read and write all data, regardless of Security Rules
@@ -67,8 +69,11 @@ function capitalize(word) {
 
 // Update key on Firebase
 function updateFirebase(ref, data) {
+  str = ref.parent + "/" + ref.key;
+  str = str.replace(databaseURL + "/", "");
+
   printNowTime();
-  console.log("Updating key " + ref.key + " on Firebase");
+  console.log("Updating " + str + " on Firebase");
   ref.set(data);
 };
 
@@ -138,11 +143,10 @@ function sendDaMessage(channelID, msg) {
 // Calculate how much time until the next raid
 function timeLeft(evt) {
   let serverID = evt.d.guild_id;
-  var ref = db.ref(serverID);
-  var raidRef = ref.child("raid");
+  var serverRef = db.ref(serverID);
   return new Promise(resolve => {
-    raidRef.once('value').then(function(snapshot) {
-      raid = snapshot.val();
+    serverRef.limitToLast(1).once('value').then(function(snapshot) {
+      raid = Object.values(snapshot.val())[0]["raid"];
       let date = raid["date"];
       let raidDate = new Date(date);
       let now = new Date();
@@ -190,8 +194,6 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
-raid = defaultRaid;
-
 bot.on('message', function (user, userID, channelID, message, evt) {
   // Webhooks don't have userIDs, so ignore them
   if (!bot.users[userID]) {
@@ -202,9 +204,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
   let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
   let serverID = evt.d.guild_id;
-  var ref = db.ref(serverID);
-  var participantsRef = ref.child("participants");
-  var raidRef = ref.child("raid");
+  var serverRef = db.ref(serverID);
+  var curRef;
 
 
   // Bot will listen on '!' commands
@@ -217,13 +218,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
      switch(cmd) {
         // Raid info
         case 'raid':
-          raidRef.once('value').then(function(snapshot) {
-            var raid = snapshot.val();
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            var raid = Object.values(snapshot.val())[0]["raid"];
             if (raid) {
               var date = raid["date"];
               var raidDate = new Date(date);
               var time;
-  
+
               timeLeft(evt).then(time => {
                 if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
                   msg = "There is currently no scheduled raid, please check back again later";
@@ -261,72 +262,70 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              msg = invalidTeam;
              sendDaMessage(channelID, msg);
            } else {
-             participantsRef.once('value').then(function(snapshot) {
-	       participants = snapshot.val(); 
+             serverRef.limitToLast(1).once('value').then(function(snapshot) {
+               participants = Object.values(snapshot.val())[0]["participants"];
+	       var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	       raid = Object.values(snapshot.val())[0]["raid"];
 	       if (participants) {
                  found = participants.find(function(player) {
                    return player.name == userID;
                  });
-		 raidRef.once('value').then(function(snapshot) {
-		   var raid = snapshot.val();
-                   if (raid) {
-                     var date = raid["date"];
-	             // User not found, register him
-                     if (!found) {
-                       var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
-                       participants.push(player);
-                       updateFirebase(participantsRef, participants);
+                 if (raid) {
+                   var date = raid["date"];
+	           // User not found, register him
+                   if (!found) {
+                     var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
+                     participants.push(player);
+	             updateFirebase(curRef.child("participants"), participants);
+                     team = capitalize(team);
+                     msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                     sendDaMessage(channelID, msg);
+                   } else {
+		     // User wants to update team
+                     if (found.team != team) {
+                       found.team = team;
+	               updateFirebase(curRef.child("participants"), participants);
                        team = capitalize(team);
-                       msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
-                       sendDaMessage(channelID, msg);
+                       msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
                      } else {
-		       // User wants to update team
-                       if (found.team != team) {
-                         found.team = team;
-                         updateFirebase(participantsRef, participants);
-                         team = capitalize(team);
-                         msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
-                       } else {
-			 // User is already registered      
-                         msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
-                       }
-                       sendDaMessage(channelID, msg);
-                     };
-		   }
-	         })
+		       // User is already registered      
+                       msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
+                     }
+                     sendDaMessage(channelID, msg);
+                   };
+	         }
 	       } else {
 		 // Participants key is empty on Firebase
                  var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
 		 participants = [];
                  participants.push(player);
-                 updateFirebase(participantsRef, participants);
+	         updateFirebase(curRef.child("participants"), participants);
                  team = capitalize(team);
-		 raidRef.once('value').then(function(snapshot) {
-		   var raid = snapshot.val();
-                   if (raid) {
-                     var date = raid["date"];
-                     msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
-		   }
-                   sendDaMessage(channelID, msg);
-	         })
+                 if (raid) {
+                   var date = raid["date"];
+                   msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+	         }
+                 sendDaMessage(channelID, msg);
 	       }
 	     })
-             //sendDaMessage(channelID, msg);
            };
         break;
 
         // Unregister from raid
         case 'unregister':
-           participantsRef.once('value').then(function(snapshot) {
-	     participants = snapshot.val(); 
-             found = participants.find(function(player) {
-               return player.name == userID;
-             });
-             if (found) {
-               participants = participants.filter(u => u.name != userID);
-               updateFirebase(participantsRef, participants);
-               msg = sender + ", you are unregistered from the next raid";
-             } else {
+           serverRef.limitToLast(1).once('value').then(function(snapshot) {
+             participants = Object.values(snapshot.val())[0]["participants"];
+	     var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+             if (participants) {
+	       found = participants.find(function(player) {
+                 return player.name == userID;
+               });
+               if (found) {
+                 participants = participants.filter(u => u.name != userID);
+	         updateFirebase(curRef.child("participants"), participants);
+                 msg = sender + ", you are unregistered from the next raid";
+	       }
+	     } else {
                msg = notRegistered;
              }
              sendDaMessage(channelID, msg);
@@ -335,55 +334,58 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List raid participants
         case 'list':
-           participantsRef.once('value').then(function(snapshot) {
-             participants = snapshot.val();
-             if (participants && participants.length > 0) {   
-	       let str = "are";
-               count = participants.length;
-               if (count == 1) {
-                 str = "is"; 
-               }
-               msg = "There " + str + " currently " +count+ " participant(s): \n";
-               teams.forEach(function(team) {
-                 teamObj = participants.filter(p => p.team === team);
-                 if (Object.keys(teamObj).length) {
-                   msg = printTeam(msg, teamObj, evt);
-                 }
-               });
-             } else {
-               msg = "Currently nobody has registered for the next raid."
-             }
-             sendDaMessage(channelID, msg);
-	   });
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            participants = Object.values(snapshot.val())[0]["participants"];
+              if (participants && participants.length > 0) {   
+	        let str = "are";
+                count = participants.length;
+                if (count == 1) {
+                  str = "is"; 
+                }
+                msg = "There " + str + " currently " +count+ " participant(s): \n";
+                teams.forEach(function(team) {
+                  teamObj = participants.filter(p => p.team === team);
+                  if (Object.keys(teamObj).length) {
+                    msg = printTeam(msg, teamObj, evt);
+                  }
+                });
+              } else {
+                msg = "Currently nobody has registered for the next raid."
+              }
+              sendDaMessage(channelID, msg);
+	  });
         break;
 
         // Check in during roll call
         case 'checkin':
-          participantsRef.once('value').then(function(snapshot) {
-            participants = snapshot.val();
-            found = participants.find(function(player) {
-              return player.name == userID;
-            });
-            if (found) {
-              if (found.status) {
-                found.status = 0;
-                updateFirebase(participantsRef, participants);
-                msg = sender + ", you are no longer checked in";
-                sendDaMessage(channelID, msg);
-              } else {
-		timeLeft(evt).then(time => {
-                  // Only allow check in an hour before scheduled time
-                  if (time.includes("hours")) {
-                    msg = sender + ", you can only check in one hour in advance";
-                    sendDaMessage(channelID, msg);
-                  } else {
-                    found.status = 1;
-                    updateFirebase(participantsRef, participants);
-                    msg = sender + ", you are checked in";
-                    sendDaMessage(channelID, msg);
-                  }
-                });
-              }
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            participants = Object.values(snapshot.val())[0]["participants"];
+	    var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+            if (participants) {
+              found = participants.find(function(player) {
+               return player.name == userID;
+              });
+              if (found) {
+                if (found.status) {
+                  found.status = 0;
+	          updateFirebase(curRef.child("participants"), participants);
+                  msg = sender + ", you are no longer checked in";
+                  sendDaMessage(channelID, msg);
+                } else {
+	          timeLeft(evt).then(time => {
+                    // Only allow check in an hour before scheduled time
+                    if (time.includes("hours")) {
+                      msg = sender + ", you can only check in one hour in advance";
+                      sendDaMessage(channelID, msg);
+                    } else {
+                      found.status = 1;
+	              updateFirebase(curRef.child("participants"), participants);
+                      msg = sender + ", you are checked in";
+                      sendDaMessage(channelID, msg);
+                    }
+                  });
+                }
+	      }
 	    } else {
               msg = notRegistered;
               sendDaMessage(channelID, msg);
@@ -405,8 +407,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Print damage report or register damage
         case 'damage':
-          raidRef.once('value').then(function(snapshot) {
-            var raid = snapshot.val();
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            var raid = Object.values(snapshot.val())[0]["raid"];
             if (raid) {
               // Look up boss HP depending on level
               switch(raid["4gods"]) {
@@ -423,82 +425,97 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               let total = 0;
               input = args[0];
 
-              participantsRef.once('value').then(function(snapshot) {
-                participants = snapshot.val();
-                if (input === undefined) {
-                  damageObj = participants.filter(p => p.damage > 0);
-                  if (damageObj.length == 0) {
-                    msg = "Currently there are no damages recorded";
-                  } else {
-                    msg = "Damage report:\n";
-                    arr = printDamage(msg, damageObj, evt);
-                    msg = arr[0];
-                    total = arr[1];
-                    msg = msg + "Total: " +total+ "%\n"
-                    if (total >= 100.0) {
-                      msg = msg + "Boss is dead, everybody can exit";
+              serverRef.limitToLast(1).once('value').then(function(snapshot) {
+                participants = Object.values(snapshot.val())[0]["participants"];
+	        var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+                if (participants) {
+                  if (input === undefined) {
+                    damageObj = participants.filter(p => p.damage > 0);
+                    if (damageObj.length == 0) {
+                      msg = "Currently there are no damages recorded";
                     } else {
-                      left = 100.0 - parseFloat(total);
-                      msg = msg + "Remaining: " +left.toFixed(2)+ "%\n";
+                      msg = "Damage report:\n";
+                      arr = printDamage(msg, damageObj, evt);
+                      msg = arr[0];
+                      total = arr[1];
+                      msg = msg + "Total: " +total+ "%\n"
+                      if (total >= 100.0) {
+                        msg = msg + "Boss is dead, everybody can exit";
+                      } else {
+                        left = 100.0 - parseFloat(total);
+                        msg = msg + "Remaining: " +left.toFixed(2)+ "%\n";
+                      }
                     }
+                    sendDaMessage(channelID, msg);
+                    return;
+                  }
+	      
+                  if ((isNaN(input) || parseInt(input) < 0 || parseInt(input) > hp)) {
+                    msg = sender + ", you have entered an invalid number, please enter a positive number less than or equal to " + hp + " (HP of boss)";
+                    sendDaMessage(channelID, msg);
+                    return;
+                  }
+                  found = participants.find(function(player) {
+                    return player.name == userID;
+                  });
+                  if (found) {
+                    found.damage = parseInt(input);
+	            updateFirebase(curRef.child("participants"), participants);
+                    msg = sender + ", your damage has been recorded";
+                  } else {
+                    msg = notRegistered;
                   }
                   sendDaMessage(channelID, msg);
-                  return;
-                }
-	      
-                if ((isNaN(input) || parseInt(input) < 0 || parseInt(input) > hp)) {
-                  msg = sender + ", you have entered an invalid number, please enter a positive number less than or equal to " + hp + " (HP of boss)";
-                  sendDaMessage(channelID, msg);
-                  return;
-                }
-                found = participants.find(function(player) {
-                  return player.name == userID;
-                });
-                if (found) {
-                  found.damage = parseInt(input);
-                  updateFirebase(participantsRef, participants);
-                  msg = sender + ", your damage has been recorded";
                 } else {
-                  msg = notRegistered;
+                  msg = "Currently there are no damages recorded";
+                  sendDaMessage(channelID, msg);
                 }
-                sendDaMessage(channelID, msg);
-	      })
-            } else {
-              msg = "Currently there are no damages recorded";
-              sendDaMessage(channelID, msg);
-            }
-          })
+              })
+	    }
+	  })
         break;
 
         // The follow commands are meant to be used by the superuser
 
-        // Uncheck-in all participants (useful for running back-to-back raids)
-        case 'uncheckin':
+        // Start a new raid
+        case 'newraid':
           if (!isAuthorized(userID, channelID)) {
             break;
           }
-          participantsRef.once('value').then(function(snapshot) {
-            participants = snapshot.val();
-            Object.keys(participants).forEach(function(key) {
-              participants[key].status = 0;
-            });
-            updateFirebase(participantsRef, participants);
-          })
+
+          var curRef = serverRef.push();
+	  updateFirebase(curRef.child("raid"), defaultRaid);
+	  msg = "New raid created, please set the raid info with `!updateraid`";
+	  sendDaMessage(channelID, msg);
         break;
 
+        // Uncheck-in all participants (useful for running back-to-back raids)
+//        case 'uncheckin':
+//          if (!isAuthorized(userID, channelID)) {
+//            break;
+//          }
+//          participantsRef.once('value').then(function(snapshot) {
+//            participants = snapshot.val();
+//            Object.keys(participants).forEach(function(key) {
+//              participants[key].status = 0;
+//            });
+//            updateFirebase(participantsRef, participants);
+//          })
+//        break;
+
         // Clear damage report and reset for next run
-        case 'cleardamage':
-          if (!isAuthorized(userID, channelID)) {
-            break;
-          } 
-          participantsRef.once('value').then(function(snapshot) {
-            participants = snapshot.val();
-            Object.keys(participants).forEach(function(key) {
-              participants[key].damage = 0;
-            });
-            updateFirebase(participantsRef, participants);
-	  })
-        break;
+//        case 'cleardamage':
+//          if (!isAuthorized(userID, channelID)) {
+//            break;
+//          } 
+//          participantsRef.once('value').then(function(snapshot) {
+//            participants = snapshot.val();
+//            Object.keys(participants).forEach(function(key) {
+//              participants[key].damage = 0;
+//            });
+//            updateFirebase(participantsRef, participants);
+//	  })
+//        break;
 
         // Tag folks who registered but haven't checked in yet
         case 'nag':
@@ -507,8 +524,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             break;
           }
           timeLeft(evt).then(time => {
-            participantsRef.once('value').then(function(snapshot) {
-              participants = snapshot.val();
+            serverRef.limitToLast(1).once('value').then(function(snapshot) {
+              participants = Object.values(snapshot.val())[0]["participants"];
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
               Object.keys(participants).forEach(function(key) {
                 if (participants[key].status === 0) {
                   msg = msg + "<@!" + participants[key].name + "> ";
@@ -521,19 +539,19 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         break;
 
         // Reset all data by clearing in-memory variable
-        case 'clearall':
-          msg = "";
-          if (!isAuthorized(userID, channelID)) {
-            break;
-          }
-          printNowTime();
-          console.log("[clearall]");
+        //case 'clearall':
+        //  msg = "";
+        //  if (!isAuthorized(userID, channelID)) {
+        //    break;
+        //  }
+        //  printNowTime();
+        //  console.log("[clearall]");
           // clear in-memory data
-          participants = [];
-          updateFirebase(participantsRef, participants);
-          msg = "All data has been cleared";
-          sendDaMessage(channelID, msg);
-        break;
+        //  participants = [];
+        //  updateFirebase(participantsRef, participants);
+        //  msg = "All data has been cleared";
+        //  sendDaMessage(channelID, msg);
+        //break;
 
         // Update next raid and level
         case 'updateraid':
@@ -551,9 +569,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             msg = "You have specified an invalid 4gods, valid options are " + fourGods.map(e => e).join(", ");
           } else {
             msg = "The next raid has been set to " + level + " level " + fourGod + " raid";
-            raid["4gods"] = fourGod;
-            raid["level"] = level;
-            updateFirebase(raidRef, raid);
+	    serverRef.limitToLast(1).once('value').then(function(snapshot) {
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	      updateFirebase(curRef.child("raid/4gods"), fourGod);
+	      updateFirebase(curRef.child("raid/level"), level);
+            })
           }
           sendDaMessage(channelID, msg);
         break;
@@ -568,8 +588,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (!isNaN(Date.parse(input))) {
             raidDate = new Date(input);
             date = input;
-            raid["date"] = input;
-            updateFirebase(raidRef, raid);
+	    serverRef.limitToLast(1).once('value').then(function(snapshot) {
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	      updateFirebase(curRef.child("raid/date"), input);
+            })
             msg = "The next raid has been set to " + input;
           } else {
             msg = "Invalid date, please enter date in format `November 2 2018 20:00 CDT`";

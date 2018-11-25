@@ -207,6 +207,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   var serverRef = db.ref(serverID);
   var curRef;
 
+  // Initialize key for server if it doesn't exist
+//  serverRef.limitToLast(1).once('value').then(function(snapshot) {
+//    if (!snapshot.value()) {
+//      msg = "Initializing key for server ${serverID}"
+//      updateFirebase(serverRef, {});      
+//      sendDaMessage(channelID, msg);
+//    }
+//  });
 
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {
@@ -219,20 +227,22 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Raid info
         case 'raid':
           serverRef.limitToLast(1).once('value').then(function(snapshot) {
-            var raid = Object.values(snapshot.val())[0]["raid"];
-            if (raid) {
-              var date = raid["date"];
-              var raidDate = new Date(date);
-              var time;
+	    if (snapshot.val()) {
+              var raid = Object.values(snapshot.val())[0]["raid"];
+              if (raid) {
+                var date = raid["date"];
+                var raidDate = new Date(date);
+                var time;
 
-              timeLeft(evt).then(time => {
-                if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
-                  msg = "There is currently no scheduled raid, please check back again later";
-                } else {
-                  msg = "The next raid will be **" + raid["level"] + " level " + raid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
-                }
-                sendDaMessage(channelID, msg);
-	      })
+                timeLeft(evt).then(time => {
+                  if (time.charAt(0) == "-" || isNaN(Date.parse(raidDate))) {
+                    msg = "There is currently no scheduled raid, please check back again later";
+                  } else {
+                    msg = "The next raid will be **" + raid["level"] + " level " + raid["4gods"] + "** and is scheduled for **" +date+ " (server time)** which is **" + time+ "** from now";
+                  }
+                  sendDaMessage(channelID, msg);
+	        })
+	      }
             } else {
               msg = "There is currently no scheduled raid, please check back again later";
               sendDaMessage(channelID, msg);
@@ -263,49 +273,51 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              sendDaMessage(channelID, msg);
            } else {
              serverRef.limitToLast(1).once('value').then(function(snapshot) {
-               participants = Object.values(snapshot.val())[0]["participants"];
-	       var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
-	       raid = Object.values(snapshot.val())[0]["raid"];
-	       if (participants) {
-                 found = participants.find(function(player) {
-                   return player.name == userID;
-                 });
-                 if (raid) {
-                   var date = raid["date"];
-	           // User not found, register him
-                   if (!found) {
-                     var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
-                     participants.push(player);
-	             updateFirebase(curRef.child("participants"), participants);
-                     team = capitalize(team);
-                     msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
-                     sendDaMessage(channelID, msg);
-                   } else {
-		     // User wants to update team
-                     if (found.team != team) {
-                       found.team = team;
+	       if (snapshot.val()) {
+                 participants = Object.values(snapshot.val())[0]["participants"];
+	         var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	         raid = Object.values(snapshot.val())[0]["raid"];
+	         if (participants) {
+                   found = participants.find(function(player) {
+                     return player.name == userID;
+                   });
+                   if (raid) {
+                     var date = raid["date"];
+	             // User not found, register him
+                     if (!found) {
+                       var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
+                       participants.push(player);
 	               updateFirebase(curRef.child("participants"), participants);
                        team = capitalize(team);
-                       msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                       msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                       sendDaMessage(channelID, msg);
                      } else {
-		       // User is already registered      
-                       msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
-                     }
-                     sendDaMessage(channelID, msg);
-                   };
+	              // User wants to update team
+                       if (found.team != team) {
+                         found.team = team;
+	                 updateFirebase(curRef.child("participants"), participants);
+                         team = capitalize(team);
+                         msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                       } else {
+		         // User is already registered      
+                         msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
+                       }
+                       sendDaMessage(channelID, msg);
+                     };
+	           }
+	         } else {
+		   // Participants key is empty on Firebase
+                   var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
+		   participants = [];
+                   participants.push(player);
+	           updateFirebase(curRef.child("participants"), participants);
+                   team = capitalize(team);
+                   if (raid) {
+                     var date = raid["date"];
+                     msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+	           }
+                   sendDaMessage(channelID, msg);
 	         }
-	       } else {
-		 // Participants key is empty on Firebase
-                 var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
-		 participants = [];
-                 participants.push(player);
-	         updateFirebase(curRef.child("participants"), participants);
-                 team = capitalize(team);
-                 if (raid) {
-                   var date = raid["date"];
-                   msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
-	         }
-                 sendDaMessage(channelID, msg);
 	       }
 	     })
            };
@@ -334,8 +346,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List raid participants
         case 'list':
+          var msg = null;
           serverRef.limitToLast(1).once('value').then(function(snapshot) {
-            participants = Object.values(snapshot.val())[0]["participants"];
+            if (snapshot.val()) {
+              participants = Object.values(snapshot.val())[0]["participants"];
               if (participants && participants.length > 0) {   
 	        let str = "are";
                 count = participants.length;
@@ -349,43 +363,47 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     msg = printTeam(msg, teamObj, evt);
                   }
                 });
-              } else {
-                msg = "Currently nobody has registered for the next raid."
               }
-              sendDaMessage(channelID, msg);
+	    }
+	    if (!msg) {
+              msg = "Currently nobody has registered for the next raid."
+	    }
+            sendDaMessage(channelID, msg);
 	  });
         break;
 
         // Check in during roll call
         case 'checkin':
           serverRef.limitToLast(1).once('value').then(function(snapshot) {
-            participants = Object.values(snapshot.val())[0]["participants"];
-	    var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
-            if (participants) {
-              found = participants.find(function(player) {
-               return player.name == userID;
-              });
-              if (found) {
-                if (found.status) {
-                  found.status = 0;
-	          updateFirebase(curRef.child("participants"), participants);
-                  msg = sender + ", you are no longer checked in";
-                  sendDaMessage(channelID, msg);
-                } else {
-	          timeLeft(evt).then(time => {
-                    // Only allow check in an hour before scheduled time
-                    if (time.includes("hours")) {
-                      msg = sender + ", you can only check in one hour in advance";
-                      sendDaMessage(channelID, msg);
-                    } else {
-                      found.status = 1;
-	              updateFirebase(curRef.child("participants"), participants);
-                      msg = sender + ", you are checked in";
-                      sendDaMessage(channelID, msg);
-                    }
-                  });
-                }
-	      }
+	    if (snapshot.val()) {
+              participants = Object.values(snapshot.val())[0]["participants"];
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+              if (participants) {
+                found = participants.find(function(player) {
+                 return player.name == userID;
+                });
+                if (found) {
+                  if (found.status) {
+                    found.status = 0;
+	            updateFirebase(curRef.child("participants"), participants);
+                    msg = sender + ", you are no longer checked in";
+                    sendDaMessage(channelID, msg);
+                  } else {
+	            timeLeft(evt).then(time => {
+                      // Only allow check in an hour before scheduled time
+                      if (time.includes("hours")) {
+                        msg = sender + ", you can only check in one hour in advance";
+                        sendDaMessage(channelID, msg);
+                      } else {
+                        found.status = 1;
+	                updateFirebase(curRef.child("participants"), participants);
+                        msg = sender + ", you are checked in";
+                        sendDaMessage(channelID, msg);
+                      }
+                    });
+                  }
+	        }
+              }
 	    } else {
               msg = notRegistered;
               sendDaMessage(channelID, msg);
@@ -483,8 +501,28 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             break;
           }
 
-          var curRef = serverRef.push();
-	  updateFirebase(curRef.child("raid"), defaultRaid);
+          var newRef = serverRef.push();
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            // An entry exists, make a copy
+            if (snapshot.val()) {
+	      var entry = Object.values(snapshot.val())[0];
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	      // Go through each player and un-checkin them and also clear damage
+              curRef.child("participants").once('value').then(function(snapshot) {
+                if (snapshot.val()) {
+                  Object.keys(entry["participants"]).forEach(function(key) {
+	            console.log(entry["participants"][key]);
+                    entry["participants"][key].status = 0;
+                    entry["participants"][key].damage = 0;
+                  });
+                }
+	        updateFirebase(newRef, entry);
+	      })
+	    // Fresh database, start from scratch
+	    } else {
+	      updateFirebase(curRef.child("raid"), defaultRaid);
+            }
+          })
 	  msg = "New raid created, please set the raid info with `!updateraid`";
 	  sendDaMessage(channelID, msg);
         break;

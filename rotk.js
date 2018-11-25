@@ -511,7 +511,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               curRef.child("participants").once('value').then(function(snapshot) {
                 if (snapshot.val()) {
                   Object.keys(entry["participants"]).forEach(function(key) {
-	            console.log(entry["participants"][key]);
                     entry["participants"][key].status = 0;
                     entry["participants"][key].damage = 0;
                   });

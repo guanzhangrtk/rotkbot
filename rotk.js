@@ -526,7 +526,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 	      })
 	    // Fresh database, start from scratch
 	    } else {
-	      updateFirebase(curRef.child("raid"), defaultRaid);
+	      updateFirebase(newRef.child("raid"), defaultRaid);
             }
           })
 	  msg = "New raid created, please set the raid info with `!updateraid`";

@@ -3,6 +3,7 @@
   "env": {
     "BOT_TOKEN": "@rotkbot-token",
     "FIREBASE_DATABASE_URL": "@rotk_database_url",
+    "F_type": "@rotk_type",
     "F_project_id": "@rotk_project_id",
     "F_private_key_id": "@rotk_private_key_id",
     "F_private_key": "@rotk_private_key",

@@ -7,12 +7,19 @@ try {
   var auth = require("./auth.json");
   token = auth.token;
 } catch (err) {
-  token = BOT_TOKEN;
+  token = process.env.BOT_TOKEN;
 }
 var admin = require("firebase-admin");
 
 // Fetch the service account key JSON file contents
-var serviceAccount = require("./firebase_auth.json");
+try {
+  var serviceAccount = require("./firebase_auth.json");
+} catch (err) {
+  try {
+    var serviceAccount = require("./firebase_auth_zeit.json");
+  } catch (err) {
+  }
+}
 
 var databaseURL = "https://rotkbot.firebaseio.com";
 

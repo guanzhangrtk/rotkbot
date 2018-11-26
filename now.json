@@ -1,0 +1,22 @@
+{
+  "alias": "rotkbot",
+  "env": {
+    "BOT_TOKEN": "@rotkbot-token",
+    "FIREBASE_DATABASE_URL": "@rotk_database_url",
+    "F_project_id": "@rotk_project_id",
+    "F_private_key_id": "@rotk_private_key_id",
+    "F_private_key": "@rotk_private_key",
+    "F_client_email": "@rotk_client_email",
+    "F_client_id": "@rotk_client_id",
+    "F_auth_uri": "@rotk_auth_uri",
+    "F_token_uri": "@rotk_token_uri",
+    "F_auth_provider_x509_cert_url": "@rotk_auth_provider_x509_cert_url",
+    "F_client_x509_cert_url": "@rotk_client_x509_cert_url",
+  },
+  "scale": {
+    "sfo1": {
+      "min": 1,
+      "max": 1
+    }
+  }
+}

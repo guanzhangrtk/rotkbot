@@ -7,7 +7,7 @@ try {
   var auth = require("./auth.json");
   token = auth.token;
 } catch (err) {
-  token = process.env.TOKEN;
+  token = BOT_TOKEN;
 }
 var admin = require("firebase-admin");
 

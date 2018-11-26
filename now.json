@@ -11,7 +11,7 @@
     "F_auth_uri": "@rotk_auth_uri",
     "F_token_uri": "@rotk_token_uri",
     "F_auth_provider_x509_cert_url": "@rotk_auth_provider_x509_cert_url",
-    "F_client_x509_cert_url": "@rotk_client_x509_cert_url",
+    "F_client_x509_cert_url": "@rotk_client_x509_cert_url"
   },
   "scale": {
     "sfo1": {

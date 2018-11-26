@@ -15,10 +15,7 @@ var admin = require("firebase-admin");
 try {
   var serviceAccount = require("./firebase_auth.json");
 } catch (err) {
-  try {
-    var serviceAccount = require("./firebase_auth_zeit.json");
-  } catch (err) {
-  }
+  var serviceAccount = require("./firebase_auth_zeit");
 }
 
 var databaseURL = "https://rotkbot.firebaseio.com";

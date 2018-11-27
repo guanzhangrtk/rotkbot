@@ -580,19 +580,22 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         break;
 
         // Reset all data by clearing in-memory variable
-        //case 'clearall':
-        //  msg = "";
-        //  if (!isAuthorized(userID, channelID)) {
-        //    break;
-        //  }
-        //  printNowTime();
-        //  console.log("[clearall]");
+        case 'clearall':
+          msg = "";
+          if (!isAuthorized(userID, channelID)) {
+            break;
+          }
+          printNowTime();
+          console.log("Clearing all participants data");
           // clear in-memory data
-        //  participants = [];
-        //  updateFirebase(participantsRef, participants);
-        //  msg = "All data has been cleared";
-        //  sendDaMessage(channelID, msg);
-        //break;
+	  serverRef.limitToLast(1).once('value').then(function(snapshot) {
+	    var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+            participants = [];
+            updateFirebase(curRef.child("participants"), participants);
+          })
+          msg = "All data has been cleared";
+          sendDaMessage(channelID, msg);
+        break;
 
         // Update next raid and level
         case 'updateraid':
@@ -639,6 +642,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           sendDaMessage(channelID, msg);
         break;
+
+        // Print out stats about raids
+        case 'stats':
+	break;
      }
   }
 });

@@ -137,10 +137,11 @@ function printDamage(msg, obj, evt) {
 }
 
 // Send msg to the channel where command are specified
-function sendDaMessage(channelID, msg) {
+function sendDaMessage(channelID, msg, embed) {
   bot.sendMessage({
     to: channelID,
-    message: msg
+    message: msg,
+    embed: embed
   })
 }
 
@@ -417,14 +418,40 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // List out available commands
         case 'commands':
-          msg = "Available commands:\n";
-          msg = msg + " !raid List the next scheduled raid\n"
-          msg = msg + " !register Register for the next raid (options are Main, Sub or Looter)\n"
-          msg = msg + " !unregister Un-register from the next raid\n"
-          msg = msg + " !list List the current participants for the next raid\n"
-          msg = msg + " !checkin Check-in during roll call (to un-checkin, just invoke the command again)\n"
-          msg = msg + " !damage Print damage report or register damage"
-          sendDaMessage(channelID, msg);
+	  sendDaMessage(channelID, '', {
+            "color": 9554529,
+            "description": "**Available Commands**",
+            "fields": [
+              {
+                "name": "!raid",
+                "value": "Print info about the next scheduled raid"
+              },
+              {
+                "name": "!register",
+                "value": "Register for the next raid (options are `Main`, `Sub` or `Looter`)"
+              },
+              {
+                "name": "!unregister",
+                "value": "Un-register from the next raid"
+              },
+              {
+                "name": "!list",
+                "value": "List the current participants for the next raid"
+              },
+              {
+                "name": "!checkin",
+                "value": "Check-in during roll call (to un-checkin, just invoke the command again)"
+              },
+              {
+                "name": "!damage",
+                "value": "Print damage report or register damage"
+              },
+              {
+                "name": "!stats",
+                "value": "Print raid stats"
+              },
+            ]
+	  });
         break;
 
         // Print damage report or register damage
@@ -645,6 +672,21 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Print out stats about raids
         case 'stats':
+          serverRef.once('value').then(function(snapshot) {
+              var numRaids = snapshot.numChildren();
+	      msg = `Total raids: ${numRaids}\n`;
+	      fourGods.forEach(function (fourGod) {
+		var count = 0;
+	        snapshot.forEach(function (key) {
+                  if (fourGod == key.val()["raid"]["4gods"]) {
+		    count++;
+	          }
+	        })
+		fourGod = capitalize(fourGod);
+	        msg = msg + `${fourGod}: ${count}\n`;
+	      });
+              sendDaMessage(channelID, msg);
+	  });
 	break;
      }
   }

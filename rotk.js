@@ -440,7 +440,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               },
               {
                 "name": "!checkin",
-                "value": "Check-in during roll call (to un-checkin, just invoke the command again)"
+                "value": "Check-in during roll call (to un-checkin, just invoke the command while checked-in)"
               },
               {
                 "name": "!damage",
@@ -484,7 +484,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                       msg = "Currently there are no damages recorded";
                     } else {
                       msg = "Damage report:\n";
-                      arr = printDamage(msg, damageObj, evt);
+                      arr = printDamage(msg, participants, evt);
                       msg = arr[0];
                       total = arr[1];
                       msg = msg + "Total: " +total+ "%\n"

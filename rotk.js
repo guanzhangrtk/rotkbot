@@ -591,19 +591,39 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (!isAuthorized(userID, channelID)) {
             break;
           }
-          timeLeft(evt).then(time => {
+          input = args[0];
+
+          if (input === "damage") {
             serverRef.limitToLast(1).once('value').then(function(snapshot) {
               participants = Object.values(snapshot.val())[0]["participants"];
-	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+              var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
               Object.keys(participants).forEach(function(key) {
-                if (participants[key].status === 0) {
+                if (participants[key].damage === 0) {
                   msg = msg + "<@!" + participants[key].name + "> ";
                 }
               });
-              msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+              if (msg === "") {
+                msg = "All players have registered their damage, you may proceed with `!newraid`";
+	      } else {
+                msg = msg + "please report your damage ASAP with the `!damage` command so we can start the next raid!";
+	      }
               sendDaMessage(channelID, msg);
-            })
-	  })
+            })          
+          } else {
+            timeLeft(evt).then(time => {
+              serverRef.limitToLast(1).once('value').then(function(snapshot) {
+                participants = Object.values(snapshot.val())[0]["participants"];
+	        var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+                Object.keys(participants).forEach(function(key) {
+                  if (participants[key].status === 0) {
+                    msg = msg + "<@!" + participants[key].name + "> ";
+                  }
+                });
+                msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+                sendDaMessage(channelID, msg);
+              })
+	    })
+          }
         break;
 
         // Reset all data by clearing in-memory variable

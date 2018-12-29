@@ -619,7 +619,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     msg = msg + "<@!" + participants[key].name + "> ";
                   }
                 });
-                msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+	        if (parseInt(time) < 0) {
+	          msg = "Raid is already in progress or we are currently not raiding, no point in nagging...";
+		} else {
+                  msg = msg + "raid will start in " +time+ " please `!checkin` now!";
+                }
                 sendDaMessage(channelID, msg);
               })
 	    })

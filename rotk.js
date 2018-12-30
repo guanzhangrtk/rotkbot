@@ -473,6 +473,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               let arr = [];
               let total = 0;
               input = args[0];
+              var raidDate = new Date(raid["date"]).toLocaleDateString('en-US');
 
               serverRef.limitToLast(1).once('value').then(function(snapshot) {
                 participants = Object.values(snapshot.val())[0]["participants"];
@@ -483,7 +484,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     if (damageObj.length == 0) {
                       msg = "Currently there are no damages recorded";
                     } else {
-                      msg = "Damage report:\n";
+                      msg = `Damage for ${raid["level"]} ${raid["4gods"]} on ${raidDate}\n`; 
                       arr = printDamage(msg, participants, evt);
                       msg = arr[0];
                       total = arr[1];

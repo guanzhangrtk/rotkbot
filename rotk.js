@@ -205,9 +205,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     return;
   }
   let sender = bot.users[userID].username;
-  let validTeams = teams.map(e => capitalize(e)).join(", ");
+  var validTeams = teams.filter(e => e !== "looter");
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
-  let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
+  let invalidTeam = sender + ", you did not specify a valid option, valid teams are " + validTeams.map(e => capitalize(e)).join(" and "); + " (eg. `!register sub`)";
   let serverID = evt.d.guild_id;
   var serverRef = db.ref(serverID);
   var curRef;
@@ -265,7 +265,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              sendDaMessage(channelID, msg);
              break;
            } else {
-             found = teams.find(function(team) {
+             found = validTeams.find(function(team) {
                return team == args[0].toLowerCase();
              });
            }

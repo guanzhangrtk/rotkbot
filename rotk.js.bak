@@ -35,6 +35,7 @@ var authorizedUsers = [ "GuanZhang#9024", "BankCodeLove#2103", "Rinth#6469", "RW
 // name, team, status and damage
 var defaultRaid = { "4gods": "dragon", "level": "master", "date": "" };
 var participants = [];
+var fourGod = "";
 var fourGods = [ "dragon", "bird" ];
 var levels = [ "minor", "intermediate", "advanced", "master" ];
 var raid = [];
@@ -205,9 +206,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     return;
   }
   let sender = bot.users[userID].username;
-  var validTeams = teams.filter(e => e !== "looter");
+  let validTeams = teams.map(e => capitalize(e)).join(", ");
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
-  let invalidTeam = sender + ", you did not specify a valid option, valid teams are " + validTeams.map(e => capitalize(e)).join(" and "); + " (eg. `!register sub`)";
+  let invalidTeam = sender + ", you did not specify a valid team as an option, valid teams are " + validTeams + " (eg. `!register looter`)";
   let serverID = evt.d.guild_id;
   var serverRef = db.ref(serverID);
   var curRef;
@@ -265,7 +266,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              sendDaMessage(channelID, msg);
              break;
            } else {
-             found = validTeams.find(function(team) {
+             found = teams.find(function(team) {
                return team == args[0].toLowerCase();
              });
            }
@@ -428,7 +429,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               },
               {
                 "name": "!register",
-                "value": "Register for the next raid (options are `Main` or `Sub`)"
+                "value": "Register for the next raid (options are `Main`, `Sub` or `Looter`)"
               },
               {
                 "name": "!unregister",
@@ -440,7 +441,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               },
               {
                 "name": "!checkin",
-                "value": "Check-in during roll call (to un-checkin, just invoke the command while checked-in)"
+                "value": "Check-in during roll call (to un-checkin, just invoke the command again)"
               },
               {
                 "name": "!damage",
@@ -473,7 +474,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               let arr = [];
               let total = 0;
               input = args[0];
-              var raidDate = new Date(raid["date"]).toLocaleDateString('en-US');
 
               serverRef.limitToLast(1).once('value').then(function(snapshot) {
                 participants = Object.values(snapshot.val())[0]["participants"];
@@ -484,8 +484,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     if (damageObj.length == 0) {
                       msg = "Currently there are no damages recorded";
                     } else {
-                      msg = `Damage for ${raid["level"]} ${raid["4gods"]} on ${raidDate}\n`; 
-                      arr = printDamage(msg, participants, evt);
+                      msg = "Damage report:\n";
+                      arr = printDamage(msg, damageObj, evt);
                       msg = arr[0];
                       total = arr[1];
                       msg = msg + "Total: " +total+ "%\n"
@@ -592,43 +592,19 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           if (!isAuthorized(userID, channelID)) {
             break;
           }
-          input = args[0];
-
-          if (input === "damage") {
+          timeLeft(evt).then(time => {
             serverRef.limitToLast(1).once('value').then(function(snapshot) {
               participants = Object.values(snapshot.val())[0]["participants"];
-              var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+	      var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
               Object.keys(participants).forEach(function(key) {
-                if (participants[key].damage === 0) {
+                if (participants[key].status === 0) {
                   msg = msg + "<@!" + participants[key].name + "> ";
                 }
               });
-              if (msg === "") {
-                msg = "All players have registered their damage, you may proceed with `!newraid`";
-	      } else {
-                msg = msg + "please report your damage ASAP with the `!damage` command";
-	      }
+              msg = msg + "raid will start in " +time+ " please `!checkin` now!";
               sendDaMessage(channelID, msg);
-            })          
-          } else {
-            timeLeft(evt).then(time => {
-              serverRef.limitToLast(1).once('value').then(function(snapshot) {
-                participants = Object.values(snapshot.val())[0]["participants"];
-	        var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
-                Object.keys(participants).forEach(function(key) {
-                  if (participants[key].status === 0) {
-                    msg = msg + "<@!" + participants[key].name + "> ";
-                  }
-                });
-	        if (parseInt(time) < 0) {
-	          msg = "Raid is already in progress or we are currently not raiding, no point in nagging...";
-		} else {
-                  msg = msg + "raid will start in " +time+ " please `!checkin` now!";
-                }
-                sendDaMessage(channelID, msg);
-              })
-	    })
-          }
+            })
+	  })
         break;
 
         // Reset all data by clearing in-memory variable
@@ -651,7 +627,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         // Update next raid and level
         case 'updateraid':
-          let fourGod = args[0];
+          fourGod = args[0];
           let level = args[1];
           msg = "";
           if (!isAuthorized(userID, channelID)) {
@@ -713,6 +689,51 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               sendDaMessage(channelID, msg);
 	  });
 	break;
+
+        // Register team for raid
+	case 'team':
+	  var fourGod = args[0];
+          let team = args[1];
+          msg = "";
+
+          serverRef.limitToLast(1).once('value').then(function(snapshot) {
+            participants = Object.values(snapshot.val())[0]["participants"];
+            var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+            if (participants) {
+	  if (fourGod === undefined) {
+
+          else if (args.length < 2 || args.length > 2) {
+            msg = "Invalid options, please specify the 4gods and team you would like to register"; 
+          } else if (!teams.includes(team)) {
+            msg = "You have specified an invalid team, valid options are " + teams.map(e => e).join(", ");
+          } else if (!fourGods.includes(fourGod)) {
+            msg = "You have specified an invalid 4gods, valid options are " + fourGods.map(e => e).join(", ");
+          } else {
+             serverRef.limitToLast(1).once('value').then(function(snapshot) {
+	       if (snapshot.val()) {
+	         var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+                 members = Object.values(snapshot.val())[0]["members"];
+		 if (members) {
+	           members[userID][fourGod] = team;
+	           updateFirebase(curRef.child("members"), members); 
+		   msg = `You have successfully registered as ${team} team for ${fourGod} raid`;
+	         // Members object not found
+	         } else {
+	           serverRef.limitToLast(1).once('value').then(function(snapshot) {
+	             var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
+                     members = [];
+		     members[userID] = [];
+		     members[userID][fourGod] = team;
+	             updateFirebase(curRef.child("members"), members);
+		     msg = `You have successfully registered as ${team} team for ${fourGod} raid`;
+		   })
+	         }
+                 sendDaMessage(channelID, msg);
+	       }
+             })
+          }
+          sendDaMessage(channelID, msg);
+        break;
      }
   }
 });

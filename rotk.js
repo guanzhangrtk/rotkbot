@@ -232,7 +232,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // Raid info
         case 'raid':
           serverRef.limitToLast(1).once('value').then(function(snapshot) {
-	    if (snapshot.val()) {
+            if (snapshot.val()) {
               var raid = Object.values(snapshot.val())[0]["raid"];
               if (raid) {
                 var date = raid["date"];

@@ -453,6 +453,32 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             },
           ]
         });
+        sendDaMessage(channelID, '', {
+          "color": 9554529,
+          "description": "**Superuser Commands**",
+          "fields": [
+            {
+              "name": "!newraid",
+              "value": "Start a new raid"
+            },
+            {
+              "name": "!nag",
+              "value": "Nag currently registered players to check-in. Add `damage` option to nag players to report damages before next raid"
+            },
+            {
+              "name": "!clearall",
+              "value": "Clear all data pertaining to current raid, i.e. registered players, damages, etc."
+            },
+            {
+              "name": "!updateraid",
+              "value": "Update current raid, options are `raid level`, eg. `!updateraid bird advanced`"
+            },
+            {
+            "name": "!updatetime",
+            "value": "Update the time of the current raid in the format `March 5 2019 22:00 UTC+8`"
+            },
+          ]
+        });
       break;
 
       // Print damage report or register damage

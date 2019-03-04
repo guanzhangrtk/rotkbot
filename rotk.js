@@ -148,7 +148,8 @@ function sendDaMessage(channelID, msg, embed) {
 // Calculate how much time until the next raid
 function timeLeft(evt) {
   let serverID = evt.d.guild_id;
-  var serverRef = db.ref(serverID);
+  let channelID = evt.d.channel_id;
+  var serverRef = db.ref(serverID+"/"+channelID);
   return new Promise(resolve => {
     serverRef.limitToLast(1).once('value').then(function(snapshot) {
       raid = Object.values(snapshot.val())[0]["raid"];
@@ -209,7 +210,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let notRegistered = sender + ", you are currently not registered for the raid, try `!register`";
   let invalidTeam = sender + ", you did not specify a valid option, valid teams are " + validTeams.map(e => capitalize(e)).join(" and "); + " (eg. `!register sub`)";
   let serverID = evt.d.guild_id;
-  var serverRef = db.ref(serverID);
+  var serverRef = db.ref(serverID+"/"+channelID);
   var curRef;
 
   // Initialize key for server if it doesn't exist

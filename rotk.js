@@ -509,12 +509,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     return player.name == userID;
                   });
                   if (found) {
-                    arr = printDamage(msg, participants, evt);
-                    damage = parseInt(input);
-                    total = +arr[1] + +((damage-found.damage)/hp*100).toFixed(2);
-                    found.damage = damage;
+                    found.damage = parseInt(input);
 	            updateFirebase(curRef.child("participants"), participants);
-                    msg = sender + ", your damage has been recorded. Total damage: "+total.toFixed(2)+ "%";
+                    msg = sender + ", your damage has been recorded";
                   } else {
                     msg = notRegistered;
                   }

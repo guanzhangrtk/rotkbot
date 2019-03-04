@@ -514,7 +514,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                    total = +arr[1] + +((damage-found.damage)/hp*100).toFixed(2);
                    found.damage = damage;
                    updateFirebase(curRef.child("participants"), participants);
-                   msg = sender + ", your damage has been recorded. Total damage: "+total.toFixed(2)+ "%";
+                   msg = sender + ", your damage (" +((damage/hp*100).toFixed(2))+ "%) has been recorded. Total damage: "+total.toFixed(2)+ "%";
                  } else {
                    msg = notRegistered;
                  }

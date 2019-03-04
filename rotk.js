@@ -459,7 +459,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           "fields": [
             {
               "name": "!newraid",
-              "value": "Start a new raid"
+              "value": "Start a new raid that duplicates players and other info from current raid"
             },
             {
               "name": "!nag",

@@ -42,6 +42,12 @@ var teams = ["main", "sub", "looter"];
 let msg = "";
 var json;
 
+// User defined options
+
+// Frequency of raids, 1 = every day, 2 = every other day, etc.
+let freq = 2
+let serverTimeZone = 'Asia/Taipei';
+
 // Four Gods boss HP
 let fg_hp = {
   "dragon": { "minor": 124499,
@@ -459,7 +465,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           "fields": [
             {
               "name": "!newraid",
-              "value": "Start a new raid that duplicates players and other info from current raid"
+              "value": "Start a new raid that duplicates players and other info from current raid. Add `fresh` option to setup raid for next day"
             },
             {
               "name": "!nag",
@@ -475,7 +481,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             },
             {
             "name": "!updatetime",
-            "value": "Update the time of the current raid in the format `March 5 2019 22:00 UTC+8`"
+            "value": "Update the time of the current raid in the format `March 5 2019 10:00 GMT+8`"
             },
           ]
         });
@@ -563,28 +569,48 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           break;
         }
 
+        input = args[0];
+
         var newRef = serverRef.push();
         serverRef.limitToLast(1).once('value').then(function(snapshot) {
           // An entry exists, make a copy
           if (snapshot.val()) {
             var entry = Object.values(snapshot.val())[0];
             var curRef = serverRef.child(Object.keys(snapshot.val())[0]);
-            // Go through each player and un-checkin them and also clear damage
-            curRef.child("participants").once('value').then(function(snapshot) {
-              if (snapshot.val()) {
-                Object.keys(entry["participants"]).forEach(function(key) {
-                  entry["participants"][key].status = 0;
-                  entry["participants"][key].damage = 0;
-                });
+            // Start a new empty raid rotating between raids and incrementing
+            // date by freq 
+            if (input === "fresh") {
+              var options = { year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: false, timeZone: serverTimeZone, timeZoneName: 'short' };
+              entry["participants"] = [];
+              let raidDate = new Date(entry["raid"]["date"]);
+              raidDate.setDate(raidDate.getDate() + parseInt(freq));
+              entry["raid"]["date"] = raidDate.toLocaleString('en-US', options).replace(/,/g, '');
+              // Swap raids
+              // TODO: Account for White Tiger in future release
+              if (entry["raid"]["4gods"] === "dragon") {
+                entry["raid"]["4gods"] = "bird";
+              } else {
+                entry["raid"]["4gods"] = "dragon";
               }
               updateFirebase(newRef, entry);
-            })
+            } else {
+              // Go through each player and un-checkin them and also clear damage
+              curRef.child("participants").once('value').then(function(snapshot) {
+                if (snapshot.val()) {
+                  Object.keys(entry["participants"]).forEach(function(key) {
+                    entry["participants"][key].status = 0;
+                    entry["participants"][key].damage = 0;
+                  });
+                }
+                updateFirebase(newRef, entry);
+              })
+            }
           // Fresh database, start from scratch
           } else {
             updateFirebase(newRef.child("raid"), defaultRaid);
           }
         })
-        msg = "New raid created, please set the raid info with `!updateraid`";
+        msg = "New raid created, you can update raid info with `!updateraid` and `!updatetime`";
         sendDaMessage(channelID, msg);
       break;
 

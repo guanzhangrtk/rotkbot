@@ -30,7 +30,7 @@ admin.initializeApp({
 var db = admin.database();
 var botname = "ROTKbot";
 // FIXME need to use roles instead
-var authorizedUsers = [ "GuanZhang#9024", "Rinth#6469", "RWal#5900", "Haydden#5436", "Gobu#4557" ];
+var authorizedUsers = [ "GuanZhang#9024", "Rinth#6469", "RWal#5900", "Haydden#5436" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var defaultRaid = { "4gods": "dragon", "level": "master", "date": "" };

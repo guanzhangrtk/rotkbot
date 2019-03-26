@@ -30,7 +30,7 @@ admin.initializeApp({
 var db = admin.database();
 var botname = "ROTKbot";
 // FIXME need to use roles instead
-var authorizedUsers = [ "GuanZhang#9024", "Rinth#6469", "RWal#5900", "Haydden#5436" ];
+var authorizedUsers = [ "GuanZhang#9024", "Rinth#6469", "RWal#5900", "Haydden#5436", "IbnBattuta#1417" ];
 // participants is an array of player objects consisting of
 // name, team, status and damage
 var defaultRaid = { "4gods": "dragon", "level": "master", "date": "" };
@@ -206,6 +206,11 @@ bot.on('ready', function (evt) {
   console.log(botname + " [" + bot.username + "] id: " + bot.id + " ready");
 });
 
+// Set the game the bot is playing
+bot.setPresence({
+  game:{ name: "Four Gods Battle" }
+});
+
 bot.on('message', function (user, userID, channelID, message, evt) {
   // Webhooks don't have userIDs, so ignore them
   if (!bot.users[userID]) {
@@ -218,15 +223,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   let serverID = evt.d.guild_id;
   var serverRef = db.ref(serverID+"/"+channelID);
   var curRef;
-
-  // Initialize key for server if it doesn't exist
-//  serverRef.limitToLast(1).once('value').then(function(snapshot) {
-//    if (!snapshot.value()) {
-//      msg = "Initializing key for server ${serverID}"
-//      updateFirebase(serverRef, {});      
-//      sendDaMessage(channelID, msg);
-//    }
-//  });
 
   // Bot will listen on '!' commands
   if (message.substring(0, 1) == '!') {

@@ -291,13 +291,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 });
                 if (raid) {
                   var date = raid["date"];
+                  let nextRaidMsg = " for the next **" +raid["level"] + " level " +raid["4gods"]+ "** raid scheduled for " +date+ " (server time)";
                   // User not found, register him
                   if (!found) {
                     var player = { "name": userID, "team": team, "status": 0, "damage": 0 };
                     participants.push(player);
                     updateFirebase(curRef.child("participants"), participants);
                     team = capitalize(team);
-                    msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                    msg = sender + ", you are registered in the " +team+ " team" + nextRaidMsg;
                     sendDaMessage(channelID, msg);
                   } else {
                     // User wants to update team
@@ -305,10 +306,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                       found.team = team;
                       updateFirebase(curRef.child("participants"), participants);
                       team = capitalize(team);
-                      msg = sender + ", your team has been updated to the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                      msg = sender + ", your team has been updated to the " +team+ " team" + nextRaidMsg;
                     } else {
                       // User is already registered      
-                      msg = sender + ", you are already registered for the next raid scheduled for " +date+ " (server time)";
+                      msg = sender + ", you are already registered" +nextRaidMsg;
                     }
                     sendDaMessage(channelID, msg);
                   };

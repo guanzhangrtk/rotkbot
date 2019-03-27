@@ -137,9 +137,9 @@ function printDamage(msg, obj, evt) {
     }
     pc = obj[key].damage/hp*100;
     msg = msg + username + ": " +obj[key].damage+ " (" + pc.toFixed(2)+ "%)\n";
-    total = total + parseFloat(pc);
+    total = total + obj[key].damage
   });
-  return [ msg, total.toFixed(2) ];
+  return [ msg, total ];
 }
 
 // Send msg to the channel where command are specified
@@ -516,7 +516,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                      msg = `Damage for ${raid["level"]} ${raid["4gods"]} on ${raidDate}\n`; 
                      arr = printDamage(msg, participants, evt);
                      msg = arr[0];
-                     total = arr[1];
+                     total = parseFloat(arr[1]/hp*100).toFixed(2);
                      msg = msg + "Total: " +total+ "%\n"
                      if (total >= 100.0) {
                        msg = msg + "Boss is dead, everybody can exit";
@@ -540,10 +540,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                  if (found) {
                    arr = printDamage(msg, participants, evt);
                    damage = parseInt(input);
-                   total = +arr[1] + +((damage-found.damage)/hp*100).toFixed(2);
+                   total = ((+arr[1] + +(damage-found.damage))/hp*100).toFixed(2);
                    found.damage = damage;
                    updateFirebase(curRef.child("participants"), participants);
-                   msg = sender + ", your damage (" +((damage/hp*100).toFixed(2))+ "%) has been recorded. Total damage: "+total.toFixed(2)+ "%";
+                   msg = sender + ", your damage (" +((damage/hp*100).toFixed(2))+ "%) has been recorded. Total damage: "+total+ "%";
                  } else {
                    msg = notRegistered;
                  }

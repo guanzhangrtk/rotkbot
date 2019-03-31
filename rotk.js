@@ -323,7 +323,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 team = capitalize(team);
                 if (raid) {
                   var date = raid["date"];
-                  msg = sender + ", you are registered in the " +team+ " team for the next raid scheduled for " +date+ " (server time)";
+                  msg = sender + ", you are registered in the " +team+ " team" + nextRaidMsg;
                 }
                 sendDaMessage(channelID, msg);
               }

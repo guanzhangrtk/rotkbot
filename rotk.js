@@ -323,6 +323,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 team = capitalize(team);
                 if (raid) {
                   var date = raid["date"];
+                  let nextRaidMsg = " for the next **" +raid["level"] + " level " +raid["4gods"]+ "** raid scheduled for " +date+ " (server time)";
                   msg = sender + ", you are registered in the " +team+ " team" + nextRaidMsg;
                 }
                 sendDaMessage(channelID, msg);
@@ -503,6 +504,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
              let arr = [];
              let total = 0;
              input = args[0];
+             target = args[1];
              var raidDate = new Date(raid["date"]).toLocaleDateString('en-US');
 
              serverRef.limitToLast(1).once('value').then(function(snapshot) {
@@ -536,8 +538,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                    return;
                  }
                  found = participants.find(function(player) {
+                   //console.log("player: " + player.name);
+                   //console.log("userID: " + userID);
                    return player.name == userID;
                  });
+
+                 //console.log("target: " +target);
+
                  if (found) {
                    arr = printDamage(msg, participants, evt);
                    damage = parseInt(input);
